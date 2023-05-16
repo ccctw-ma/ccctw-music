@@ -1,0 +1,55 @@
+.main {
+  width: 1024px;
+  margin: auto;
+}
+
+.header {
+  width: 1024px;
+  height: 50px;
+  position: fixed;
+  top: 0;
+}
+
+.content {
+  position: absolute;
+  display: block;
+  top: 3re,;
+  bottom: 3.5rem;
+  height: calc(100vh - 6.5rem);
+  width: 100%;
+  /* background-color: #ffffff; */
+  overflow: auto;
+}
+
+.musicPlaySpin {
+  animation: spin 30s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.musicPlaySpinPause{
+  animation-play-state: paused;
+}
+
+.musicNameLoop{
+  animation: 15s wordLoop linear infinite normal;
+}
+
+@keyframes wordLoop {
+  0% {
+    transform: translateX(200px);
+    -webkit-transform: translateX(200px);
+  }
+
+  100%{
+    transform: translateX(-100%);
+    -webkit-transform: translateX(-100%);
+  }
+}
