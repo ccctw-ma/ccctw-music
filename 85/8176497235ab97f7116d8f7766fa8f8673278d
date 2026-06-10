@@ -1,0 +1,14 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "858176497235ab97f7116d8f7766fa8f8673278d",
+  "prompts": {},
+  "humans": {
+    "h_29e8199775c20f": {
+      "author": "mashichen <mashichen.msc@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
