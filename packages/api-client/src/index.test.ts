@@ -29,4 +29,31 @@ describe("createMusicApiClient", () => {
 
     await expect(client.search({ keyword: "bad" })).rejects.toThrow("Search failed: 500 Server Error");
   });
+
+  it("loads playable urls with encoded source and song id", async () => {
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { source: "migu", url: "https://cdn.example.com/song.mp3", quality: "standard" } }),
+    });
+    const client = createMusicApiClient({ baseUrl: "https://api.example.com/", fetcher });
+
+    await expect(client.playableUrl("migu", "song id")).resolves.toEqual({
+      source: "migu",
+      url: "https://cdn.example.com/song.mp3",
+      quality: "standard",
+    });
+
+    expect(fetcher).toHaveBeenCalledWith("https://api.example.com/v1/songs/migu/song%20id/url");
+  });
+
+  it("throws when playable url response is not ok", async () => {
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+    });
+    const client = createMusicApiClient({ baseUrl: "https://api.example.com", fetcher });
+
+    await expect(client.playableUrl("migu", "missing")).rejects.toThrow("Playable URL failed: 404 Not Found");
+  });
 });

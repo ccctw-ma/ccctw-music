@@ -12,8 +12,16 @@ export interface SearchParams {
   sources?: MusicSource[];
 }
 
+export interface PlayableUrlResult {
+  source: MusicSource;
+  url: string | null;
+  quality?: string;
+  expiresAt?: string;
+}
+
 export interface MusicApiClient {
   search(params: SearchParams): Promise<SearchResult[]>;
+  playableUrl(source: MusicSource, id: string): Promise<PlayableUrlResult>;
 }
 
 export function createMusicApiClient(options: MusicApiClientOptions): MusicApiClient {
@@ -34,6 +42,16 @@ export function createMusicApiClient(options: MusicApiClientOptions): MusicApiCl
       }
 
       const data = (await response.json()) as { data: SearchResult[] };
+      return data.data;
+    },
+
+    async playableUrl(source, id) {
+      const response = await fetcher(`${baseUrl}/v1/songs/${encodeURIComponent(source)}/${encodeURIComponent(id)}/url`);
+      if (!response.ok) {
+        throw new Error(`Playable URL failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = (await response.json()) as { data: PlayableUrlResult };
       return data.data;
     },
   };
