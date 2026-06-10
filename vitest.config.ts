@@ -17,6 +17,7 @@ export default defineConfig({
         "apps/web/src/stores/player-store.ts",
         "packages/api-client/src/index.ts",
         "packages/core/src/{formatters,lyrics,player}.ts",
+        "packages/ui/src/style-score.ts",
         "packages/music-providers/src/{http,index,migu,netease,qq}.ts",
       ],
       exclude: ["**/*.test.{ts,tsx}", "**/types.ts"],

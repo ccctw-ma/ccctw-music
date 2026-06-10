@@ -56,4 +56,32 @@ describe("createMusicApiClient", () => {
 
     await expect(client.playableUrl("migu", "missing")).rejects.toThrow("Playable URL failed: 404 Not Found");
   });
+
+  it("loads lyrics with encoded source and song id", async () => {
+    const lyric = {
+      type: 2,
+      raw: "[00:01.00]hello",
+      lines: [{ id: "line-1", sentence: "hello", timeStamp: 1 }],
+    };
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: lyric }),
+    });
+    const client = createMusicApiClient({ baseUrl: "https://api.example.com/", fetcher });
+
+    await expect(client.lyric("migu", "song id")).resolves.toEqual(lyric);
+
+    expect(fetcher).toHaveBeenCalledWith("https://api.example.com/v1/songs/migu/song%20id/lyric");
+  });
+
+  it("throws when lyric response is not ok", async () => {
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+    });
+    const client = createMusicApiClient({ baseUrl: "https://api.example.com", fetcher });
+
+    await expect(client.lyric("migu", "missing")).rejects.toThrow("Lyric failed: 404 Not Found");
+  });
 });
