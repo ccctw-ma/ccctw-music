@@ -1,0 +1,17 @@
+name = "ccctw-music-api"
+main = "src/index.ts"
+compatibility_date = "2026-06-10"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+APP_ENV = "development"
+
+[[kv_namespaces]]
+binding = "MUSIC_CACHE"
+id = "4358f9d7d42e46afb5927d9d630ca509"
+preview_id = "15a5a09c99874f3486af7b6f18eac7c7"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ccctw-music"
+database_id = "8019a140-6eb4-4dde-9e67-b85afa12888f"

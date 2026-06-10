@@ -1,0 +1,19 @@
+{
+  "name": "@ccctw-music/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --filter @ccctw-music/web build && pnpm check",
+    "check": "node scripts/check.mjs",
+    "sync": "capacitor sync",
+    "build:ios": "capacitor open ios",
+    "build:android": "capacitor open android"
+  },
+  "dependencies": {
+    "@capacitor/core": "latest"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "latest"
+  }
+}

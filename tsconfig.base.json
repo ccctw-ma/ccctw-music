@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "ignoreDeprecations": "6.0",
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@ccctw-music/core": ["packages/core/src/index.ts"],
+      "@ccctw-music/contracts": ["packages/contracts/src/index.ts"],
+      "@ccctw-music/api-client": ["packages/api-client/src/index.ts"],
+      "@ccctw-music/music-providers": ["packages/music-providers/src/index.ts"],
+      "@ccctw-music/platform": ["packages/platform/src/index.ts"],
+      "@ccctw-music/ui": ["packages/ui/src/index.ts"]
+    }
+  }
+}

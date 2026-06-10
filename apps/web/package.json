@@ -1,0 +1,34 @@
+{
+  "name": "@ccctw-music/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "rsbuild dev",
+    "build": "rsbuild build",
+    "preview": "rsbuild preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "deploy": "rsbuild build && wrangler pages deploy dist --project-name ccctw-music --commit-dirty=true"
+  },
+  "dependencies": {
+    "@ccctw-music/api-client": "workspace:*",
+    "@ccctw-music/core": "workspace:*",
+    "@ccctw-music/platform": "workspace:*",
+    "@ccctw-music/ui": "workspace:*",
+    "@tanstack/react-query": "latest",
+    "@tanstack/react-router": "latest",
+    "lucide-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "zustand": "latest"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "latest",
+    "@rsbuild/plugin-react": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "typescript": "latest",
+    "wrangler": "3.109.3"
+  }
+}

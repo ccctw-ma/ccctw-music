@@ -1,0 +1,14 @@
+{
+  "name": "@ccctw-music/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --filter @ccctw-music/web build && pnpm check",
+    "check": "node scripts/check.mjs",
+    "build:native": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "latest"
+  }
+}

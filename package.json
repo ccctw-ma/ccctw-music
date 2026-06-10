@@ -1,31 +1,47 @@
 {
-  "name": "my-next-app",
+  "name": "ccctw-music",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.32.1",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "prepare": "husky",
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "lint": "turbo lint",
+    "format": "prettier .github apps packages docs e2e scripts *.json *.ts *.md --write",
+    "format:check": "prettier .github apps packages docs e2e scripts *.json *.ts *.md --check",
+    "test": "pnpm test:unit",
+    "test:unit": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "check:targets": "turbo check",
+    "quality": "pnpm format:check && pnpm build && pnpm test:unit && pnpm test:e2e && pnpm check:targets",
+    "ci": "pnpm quality",
+    "cloudflare:provision": "node scripts/provision-cloudflare.mjs",
+    "github:secrets": "node scripts/sync-github-secrets.mjs",
+    "dev:web": "pnpm --filter @ccctw-music/web dev",
+    "dev:server": "pnpm --filter @ccctw-music/server dev",
+    "deploy:web": "pnpm --filter @ccctw-music/web run deploy",
+    "deploy:server": "pnpm --filter @ccctw-music/server run deploy"
   },
-  "dependencies": {
-    "antd": "^4.20.2",
-    "axios": "^0.27.2",
-    "next": "12.1.4",
-    "qq-music-api": "^1.1.1",
-    "react": "18.0.0",
-    "react-dom": "18.0.0",
-    "recoil": "^0.7.2",
-    "swr": "^1.3.0",
-    "uuid": "^8.3.2",
-    "xml2js": "^0.4.23"
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md,css,yml,yaml}": "prettier --write"
   },
   "devDependencies": {
-    "@tailwindcss/line-clamp": "^0.3.1",
-    "@types/react": "^18.0.5",
-    "autoprefixer": "^10.4.4",
-    "postcss": "^8.4.12",
-    "tailwindcss": "^3.0.23",
-    "typescript": "^4.6.3"
+    "@playwright/test": "latest",
+    "@testing-library/react": "latest",
+    "@testing-library/user-event": "latest",
+    "@types/node": "latest",
+    "@vitejs/plugin-react": "latest",
+    "@vitest/coverage-v8": "latest",
+    "husky": "latest",
+    "jsdom": "latest",
+    "lint-staged": "latest",
+    "prettier": "latest",
+    "vite-tsconfig-paths": "latest",
+    "turbo": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
   }
 }
