@@ -61,6 +61,10 @@ async function collectSnapshot(page: Page): Promise<UiStyleSnapshot> {
   return page.evaluate(() => {
     const root = document.querySelector('[data-testid="ui-style-root"]') as HTMLElement;
     const styles = getComputedStyle(root);
+    const declaredBackground =
+      styles.backgroundColor === "rgba(0, 0, 0, 0)"
+        ? getComputedStyle(document.documentElement).backgroundColor
+        : styles.backgroundColor;
     const allElements = Array.from(root.querySelectorAll<HTMLElement>("*"));
     const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>("button"));
     const regions = Array.from(
@@ -86,7 +90,7 @@ async function collectSnapshot(page: Page): Promise<UiStyleSnapshot> {
           })
           .filter((value) => value && value !== "rgba(0, 0, 0, 0)" && value !== "transparent"),
       ),
-    ).slice(0, 12);
+    );
 
     return {
       features: {
@@ -100,10 +104,10 @@ async function collectSnapshot(page: Page): Promise<UiStyleSnapshot> {
         player: text.includes("Now Playing") && Boolean(root.querySelector('[aria-label="底部播放器"]')),
       },
       visual: {
-        background: styles.backgroundColor,
+        background: declaredBackground,
         accentColors,
         fontFamilies,
-        hasAtmosphere: Boolean(root.querySelector(".aurora, .wave-stack, .cover-orbit")),
+        hasAtmosphere: Boolean(root.querySelector(".aurora, .sky-disc, .glass-halo, .cover-orbit")),
         hasGenericPurpleGradient: /purple|168, 85, 247|139, 92, 246/i.test(root.outerHTML),
       },
       composition: {

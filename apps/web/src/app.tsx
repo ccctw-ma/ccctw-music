@@ -18,6 +18,7 @@ import {
   Waves,
 } from "lucide-react";
 import { useMemo, useRef, useState, type FormEvent } from "react";
+import { Badge, Button, Card, Input, Slider } from "./components/ui";
 import { songKey, usePlayerStore } from "./stores/player-store";
 
 const apiClient = createMusicApiClient({
@@ -46,6 +47,15 @@ function formatTime(seconds = 0) {
   const minute = Math.floor(safe / 60);
   const second = Math.floor(safe % 60);
   return `${minute}:${String(second).padStart(2, "0")}`;
+}
+
+function coverProps(size: number) {
+  return {
+    alt: "",
+    role: "presentation" as const,
+    width: size,
+    height: size,
+  };
 }
 
 function activeLyricId(lines: LyricLine[], currentTime: number) {
@@ -218,8 +228,10 @@ export function App() {
     const favorite = isFavorite(song);
     return (
       <span className="song-actions">
-        <button
+        <Button
           className={favorite ? "icon-action active" : "icon-action"}
+          variant="icon"
+          shadcnName={`favorite-${songKey(song)}`}
           type="button"
           aria-label={`${favorite ? "取消收藏" : "收藏"} ${song.name}`}
           onClick={(event) => {
@@ -228,9 +240,11 @@ export function App() {
           }}
         >
           <Heart size={15} />
-        </button>
-        <button
+        </Button>
+        <Button
           className="icon-action"
+          variant="icon"
+          shadcnName={`studio-mix-${songKey(song)}`}
           type="button"
           aria-label={`加入 Studio Mix ${song.name}`}
           onClick={(event) => {
@@ -239,7 +253,7 @@ export function App() {
           }}
         >
           <Plus size={15} />
-        </button>
+        </Button>
       </span>
     );
   }
@@ -298,23 +312,40 @@ export function App() {
           </div>
           <form className="search-box" role="search" aria-label="音乐搜索" onSubmit={handleSubmit}>
             <Search size={18} />
-            <input
+            <Input
+              shadcnName="music-search"
+              type="search"
+              name="keyword"
+              autoComplete="off"
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              placeholder="搜索歌曲、歌手或专辑"
+              placeholder="搜索歌曲、歌手或专辑…"
               aria-label="搜索歌曲、歌手或专辑"
             />
-            <button type="submit" disabled={searchQuery.isFetching}>
-              {searchQuery.isFetching ? "搜索中" : "搜索"}
-            </button>
+            <Button
+              variant="primary"
+              shadcnName="search-submit"
+              type="submit"
+              disabled={searchQuery.isFetching}
+              aria-live="polite"
+            >
+              {searchQuery.isFetching ? (
+                <>
+                  <Loader2 size={15} className="spin" />
+                  搜索中…
+                </>
+              ) : (
+                "搜索"
+              )}
+            </Button>
           </form>
         </header>
 
         <section className="listen-layout">
           <div className="main-stack">
-            <section className="now-card" id="discover" aria-label="Now Playing">
+            <Card className="now-card" shadcnName="now-playing" id="discover" aria-label="Now Playing">
               <div className="cover-orbit">
-                <img src={current?.coverUrl || featuredSongs[0]?.coverUrl || "/favicon.svg"} alt="" />
+                <img src={current?.coverUrl || featuredSongs[0]?.coverUrl || "/favicon.svg"} {...coverProps(270)} />
               </div>
               <div className="now-copy">
                 <span className="section-kicker">Now Playing</span>
@@ -322,8 +353,10 @@ export function App() {
                 <p>{current ? currentArtists : "搜索歌曲或歌手，点击结果后会直接请求音源并启动播放器。"}</p>
                 {playbackError ? <strong className="playback-error">{playbackError}</strong> : null}
                 <div className="quick-actions">
-                  <button
+                  <Button
                     className="primary-play"
+                    variant="primary"
+                    shadcnName="primary-play"
                     type="button"
                     onClick={handleTogglePlayback}
                     disabled={!current || Boolean(loadingSongId)}
@@ -335,8 +368,8 @@ export function App() {
                     ) : (
                       <Play size={18} />
                     )}
-                    {loadingSongId ? "加载中" : isPlaying ? "暂停" : "播放"}
-                  </button>
+                    {loadingSongId ? "加载中…" : isPlaying ? "暂停" : "播放"}
+                  </Button>
                   {current ? renderSongActions(current) : null}
                   <span>{current ? sourceName(current.source) : `${songs.length} 首结果`}</span>
                 </div>
@@ -348,42 +381,44 @@ export function App() {
                 <span />
                 <span />
               </div>
-            </section>
+            </Card>
 
             <section className="browse-panel" aria-label="Browse">
               {browseLanes.map((lane) => (
-                <article className="browse-lane" key={lane.name}>
+                <Card as="article" className="browse-lane" shadcnName={`browse-${lane.name}`} key={lane.name}>
                   <div className="panel-header compact">
                     <h2>{lane.name}</h2>
                     <span>{lane.songs.length || "待发现"}</span>
                   </div>
                   <div className="browse-cards">
                     {lane.songs.map((song) => (
-                      <button
+                      <Button
                         key={`${lane.name}-${songKey(song)}`}
+                        variant="ghost"
+                        shadcnName={`browse-${lane.name}-${songKey(song)}`}
                         type="button"
                         onClick={() => void startSong(song, songs)}
                       >
-                        <img src={song.coverUrl || "/favicon.svg"} alt="" />
+                        <img src={song.coverUrl || "/favicon.svg"} loading="lazy" {...coverProps(220)} />
                         <strong>{song.name}</strong>
                         <small>{artists(song)}</small>
-                      </button>
+                      </Button>
                     ))}
                     {!searchQuery.isFetching && lane.songs.length === 0 ? (
                       <p>这一栏暂时安静，换个关键词唤醒它。</p>
                     ) : null}
                   </div>
-                </article>
+                </Card>
               ))}
             </section>
 
-            <section className="result-panel" aria-label="Search">
+            <Card className="result-panel" shadcnName="search-results" aria-label="Search">
               <div className="panel-header">
                 <div>
                   <span className="section-kicker">Search</span>
                   <h2>搜索结果</h2>
                 </div>
-                <span>{searchQuery.isFetching ? "同步中" : `${songs.length} 首`}</span>
+                <span>{searchQuery.isFetching ? "同步中…" : `${songs.length} 首`}</span>
               </div>
               {searchQuery.isError ? <strong className="playback-error">搜索暂时不可用，请稍后再试。</strong> : null}
 
@@ -393,27 +428,36 @@ export function App() {
                   const selected = currentKey === key;
 
                   return (
-                    <button
+                    <div
                       className={`song-row${selected ? " active" : ""}`}
                       key={key}
-                      onClick={() => void startSong(song, songs)}
+                      role="group"
+                      aria-label={`${song.name} ${artists(song)}`}
                     >
-                      <span className="song-index">{String(index + 1).padStart(2, "0")}</span>
-                      <span className="song-cover-wrap">
-                        <img src={song.coverUrl || "/favicon.svg"} alt="" />
-                      </span>
-                      <span className="song-meta">
-                        <strong>{song.name}</strong>
-                        <small>
-                          {artists(song)} · {sourceName(song.source)}
-                        </small>
-                      </span>
+                      <Button
+                        className="song-main-action"
+                        variant="row"
+                        shadcnName={`play-${key}`}
+                        type="button"
+                        onClick={() => void startSong(song, songs)}
+                      >
+                        <span className="song-index">{String(index + 1).padStart(2, "0")}</span>
+                        <span className="song-cover-wrap">
+                          <img src={song.coverUrl || "/favicon.svg"} loading="lazy" {...coverProps(40)} />
+                        </span>
+                        <span className="song-meta">
+                          <strong>{song.name}</strong>
+                          <small>
+                            {artists(song)} · {sourceName(song.source)}
+                          </small>
+                        </span>
+                        <span className="row-play-icon" aria-hidden="true">
+                          {loadingSongId === key ? <Loader2 size={16} className="spin" /> : <Play size={16} />}
+                        </span>
+                        <span className="sr-only">播放 {song.name}</span>
+                      </Button>
                       {renderSongActions(song)}
-                      <span className="row-play-icon" aria-hidden="true">
-                        {loadingSongId === key ? <Loader2 size={16} className="spin" /> : <Play size={16} />}
-                      </span>
-                      <span className="sr-only">播放 {song.name}</span>
-                    </button>
+                    </div>
                   );
                 })}
                 {!searchQuery.isFetching && songs.length === 0 ? (
@@ -424,13 +468,13 @@ export function App() {
                   </div>
                 ) : null}
               </div>
-            </section>
+            </Card>
           </div>
 
           <aside className="right-stack">
-            <section className="player-panel" aria-label="Player">
+            <Card className="player-panel" shadcnName="player" aria-label="Player">
               <div className="player-cover">
-                <img className="cover" src={current?.coverUrl || "/favicon.svg"} alt="" />
+                <img className="cover" src={current?.coverUrl || "/favicon.svg"} {...coverProps(420)} />
                 <span className={isPlaying ? "pulse-dot active" : "pulse-dot"} />
               </div>
               <span className="section-kicker">{sourceName(current?.source)}</span>
@@ -442,16 +486,20 @@ export function App() {
                 />
               </div>
               <div className="transport">
-                <button
+                <Button
+                  variant="icon"
+                  shadcnName="previous"
                   type="button"
                   aria-label="上一首"
                   disabled={!current}
                   onClick={() => void handleSkip("previous")}
                 >
                   <SkipBack size={18} />
-                </button>
-                <button
+                </Button>
+                <Button
                   className="play-button"
+                  variant="primary"
+                  shadcnName="player-play"
                   type="button"
                   onClick={handleTogglePlayback}
                   disabled={!current || Boolean(loadingSongId)}
@@ -463,17 +511,24 @@ export function App() {
                   ) : (
                     <Play size={20} />
                   )}
-                  <span>{loadingSongId ? "加载中" : isPlaying ? "暂停" : "播放"}</span>
-                </button>
-                <button type="button" aria-label="下一首" disabled={!current} onClick={() => void handleSkip("next")}>
+                  <span>{loadingSongId ? "加载中…" : isPlaying ? "暂停" : "播放"}</span>
+                </Button>
+                <Button
+                  variant="icon"
+                  shadcnName="next"
+                  type="button"
+                  aria-label="下一首"
+                  disabled={!current}
+                  onClick={() => void handleSkip("next")}
+                >
                   <SkipForward size={18} />
-                </button>
+                </Button>
               </div>
               <label className="volume-line">
                 <Volume2 size={16} />
-                <input
+                <Slider
+                  shadcnName="volume"
                   aria-label="音量"
-                  type="range"
                   min="0"
                   max="1"
                   step="0.01"
@@ -481,39 +536,41 @@ export function App() {
                   onChange={(event) => handleVolume(Number(event.currentTarget.value))}
                 />
               </label>
-            </section>
+            </Card>
 
-            <section className="library-panel" id="library" aria-label="Library">
+            <Card className="library-panel" shadcnName="library" id="library" aria-label="Library">
               <div className="panel-header compact">
                 <h2>Library</h2>
                 <span>{recentlyPlayed.length} 最近播放</span>
               </div>
               <div className="stat-grid">
-                <span>
+                <Badge shadcnName="favorites-count">
                   <strong>{favorites.length}</strong> Favorites
-                </span>
-                <span>
+                </Badge>
+                <Badge shadcnName="playlists-count">
                   <strong>{playlists.length}</strong> Playlists
-                </span>
-                <span>
+                </Badge>
+                <Badge shadcnName="queue-count">
                   <strong>{queue.length}</strong> Queue
-                </span>
+                </Badge>
               </div>
               <div className="mini-list">
                 {recentlyPlayed.slice(0, 3).map((song) => (
-                  <button
+                  <Button
                     key={`recent-${songKey(song)}`}
+                    variant="ghost"
+                    shadcnName={`recent-${songKey(song)}`}
                     type="button"
                     onClick={() => void startSong(song, queue.length ? queue : [song])}
                   >
                     {song.name}
-                  </button>
+                  </Button>
                 ))}
                 {recentlyPlayed.length === 0 ? <p>播放过的歌曲会停靠在这里。</p> : null}
               </div>
-            </section>
+            </Card>
 
-            <section className="queue-panel" id="queue" aria-label="Queue">
+            <Card className="queue-panel" shadcnName="queue" id="queue" aria-label="Queue">
               <div className="panel-header compact">
                 <h2>Queue</h2>
                 <span>{queue.length} 首</span>
@@ -521,61 +578,76 @@ export function App() {
               <ol className="queue-list">
                 {queue.map((song) => (
                   <li className={currentKey === songKey(song) ? "active" : ""} key={`queue-${songKey(song)}`}>
-                    <button type="button" onClick={() => void startSong(song, queue)}>
+                    <Button
+                      variant="ghost"
+                      shadcnName={`queue-play-${songKey(song)}`}
+                      type="button"
+                      onClick={() => void startSong(song, queue)}
+                    >
                       <strong>{song.name}</strong>
                       <small>{artists(song)}</small>
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="icon"
+                      shadcnName={`queue-remove-${songKey(song)}`}
                       type="button"
                       aria-label={`移出队列 ${song.name}`}
                       disabled={currentKey === songKey(song)}
                       onClick={() => removeFromQueue(songKey(song))}
                     >
                       <Trash2 size={14} />
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ol>
-            </section>
+            </Card>
 
-            <section className="favorites-panel" id="favorites" aria-label="Favorites">
+            <Card className="favorites-panel" shadcnName="favorites" id="favorites" aria-label="Favorites">
               <div className="panel-header compact">
                 <h2>Favorites</h2>
                 <span>{favorites.length} 首</span>
               </div>
               <div className="mini-list">
                 {favorites.map((song) => (
-                  <button key={`fav-${songKey(song)}`} type="button" onClick={() => void startSong(song, favorites)}>
+                  <Button
+                    key={`fav-${songKey(song)}`}
+                    variant="ghost"
+                    shadcnName={`favorite-play-${songKey(song)}`}
+                    type="button"
+                    onClick={() => void startSong(song, favorites)}
+                  >
                     {song.name}
-                  </button>
+                  </Button>
                 ))}
                 {favorites.length === 0 ? <p>点击爱心收藏你的第一首歌。</p> : null}
               </div>
-            </section>
+            </Card>
 
-            <section className="playlist-panel" aria-label="Studio Mix">
+            <Card className="playlist-panel" shadcnName="studio-mix" aria-label="Studio Mix">
               <div className="panel-header compact">
                 <h2>Studio Mix</h2>
                 <span>{currentPlaylist?.songs.length ?? 0} 首</span>
               </div>
               <div className="mini-list">
                 {currentPlaylist?.songs.map((song) => (
-                  <button
+                  <Button
                     key={`mix-${songKey(song)}`}
+                    variant="ghost"
+                    shadcnName={`mix-play-${songKey(song)}`}
                     type="button"
                     onClick={() => void startSong(song, currentPlaylist.songs)}
                   >
                     {song.name}
-                  </button>
+                  </Button>
                 )) ?? <p>把歌曲加入 Studio Mix，建立你的第一张歌单。</p>}
               </div>
-            </section>
+            </Card>
 
-            <section className="lyrics-panel" aria-label="Lyrics">
+            <Card className="lyrics-panel" shadcnName="lyrics" aria-label="Lyrics">
               <div className="panel-header compact">
                 <h2>Lyrics</h2>
                 <span>
-                  {lyricQuery.isFetching ? "同步中" : lyricLines.length ? `${lyricLines.length} 行` : "待播放"}
+                  {lyricQuery.isFetching ? "同步中…" : lyricLines.length ? `${lyricLines.length} 行` : "待播放"}
                 </span>
               </div>
               {lyricQuery.isError ? <strong className="playback-error">歌词暂时加载失败。</strong> : null}
@@ -589,22 +661,29 @@ export function App() {
               {!lyricQuery.isFetching && !lyricQuery.isError && lyricLines.length === 0 ? (
                 <p>暂无歌词，先选择一首歌。</p>
               ) : null}
-            </section>
+            </Card>
           </aside>
         </section>
       </section>
 
-      <footer className="mini-player" aria-label="底部播放器">
-        <img src={current?.coverUrl || "/favicon.svg"} alt="" />
+      <Card as="footer" className="mini-player" shadcnName="mini-player" aria-label="底部播放器">
+        <img src={current?.coverUrl || "/favicon.svg"} {...coverProps(56)} />
         <div>
           <strong>{current?.name ?? "选择歌曲"}</strong>
           <span>{currentArtists}</span>
         </div>
-        <button type="button" onClick={handleTogglePlayback} disabled={!current || Boolean(loadingSongId)}>
+        <Button
+          type="button"
+          variant="primary"
+          shadcnName="mini-player-play"
+          aria-label={`底部播放器${isPlaying ? "暂停" : "播放"}`}
+          onClick={handleTogglePlayback}
+          disabled={!current || Boolean(loadingSongId)}
+        >
           {isPlaying ? <Pause size={18} /> : <Play size={18} />}
           <span>{isPlaying ? "暂停" : "播放"}</span>
-        </button>
-      </footer>
+        </Button>
+      </Card>
     </main>
   );
 }

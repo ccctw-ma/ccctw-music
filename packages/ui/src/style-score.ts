@@ -62,6 +62,17 @@ const REQUIRED_FEATURES: Array<keyof UiStyleSnapshot["features"]> = [
 ];
 
 const GENERIC_FONTS = ["inter", "arial", "roboto", "system-ui"];
+const SKY_BLUE_TARGETS: RgbColor[] = [
+  { red: 2, green: 132, blue: 199 },
+  { red: 14, green: 165, blue: 233 },
+  { red: 56, green: 189, blue: 248 },
+  { red: 125, green: 211, blue: 252 },
+];
+const LIGHT_SKY_TARGETS: RgbColor[] = [
+  { red: 240, green: 249, blue: 255 },
+  { red: 224, green: 242, blue: 254 },
+  { red: 186, green: 230, blue: 253 },
+];
 
 function clampScore(score: number, max: number) {
   return Math.max(0, Math.min(max, score));
@@ -76,22 +87,94 @@ function scoreFeatures(snapshot: UiStyleSnapshot, notes: string[]) {
   return clampScore((present.length / REQUIRED_FEATURES.length) * 25, 25);
 }
 
+function firstFontFamily(fontFamily = "") {
+  return fontFamily
+    .split(",")
+    .map((font) => font.trim().replace(/^['\"]|['\"]$/g, ""))
+    .find(Boolean)
+    ?.toLowerCase();
+}
+
+interface RgbColor {
+  red: number;
+  green: number;
+  blue: number;
+}
+
+function rgbTriplet(color: string): RgbColor | undefined {
+  const match = color.match(/rgba?\(\s*(\d+)(?:\s*,\s*|\s+)(\d+)(?:\s*,\s*|\s+)(\d+)/i);
+  if (!match) return undefined;
+
+  return {
+    red: Number(match[1]),
+    green: Number(match[2]),
+    blue: Number(match[3]),
+  };
+}
+
+function matchesRgb(color: string, targets: RgbColor[]) {
+  const rgb = rgbTriplet(color);
+  return Boolean(
+    rgb && targets.some((target) => rgb.red === target.red && rgb.green === target.green && rgb.blue === target.blue),
+  );
+}
+
+function hueFromRgb({ red, green, blue }: RgbColor) {
+  const r = red / 255;
+  const g = green / 255;
+  const b = blue / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+
+  if (delta === 0) return undefined;
+  if (max === r) return ((g - b) / delta + (g < b ? 6 : 0)) * 60;
+  if (max === g) return ((b - r) / delta + 2) * 60;
+  return ((r - g) / delta + 4) * 60;
+}
+
+function hueDistance(a: number, b: number) {
+  const linearDistance = Math.abs(a - b);
+  return Math.min(linearDistance, 360 - linearDistance);
+}
+
+function hasHueSeparation(colors: string[]) {
+  const hues = colors.flatMap((color) => {
+    const rgb = rgbTriplet(color);
+    if (!rgb) return [];
+
+    const hue = hueFromRgb(rgb);
+    return hue === undefined ? [] : [hue];
+  });
+
+  for (let index = 0; index < hues.length; index += 1) {
+    for (let otherIndex = index + 1; otherIndex < hues.length; otherIndex += 1) {
+      if (hueDistance(hues[index], hues[otherIndex]) >= 36) return true;
+    }
+  }
+
+  return false;
+}
+
 function scoreVisual(snapshot: UiStyleSnapshot, notes: string[]) {
-  const fonts = snapshot.visual.fontFamilies.map((font) => font.toLowerCase());
-  const genericFontCount = fonts.filter((font) => GENERIC_FONTS.some((generic) => font.includes(generic))).length;
-  const usesDistinctiveType = genericFontCount < fonts.length;
-  const hasDarkAtmosphericBase =
-    !snapshot.visual.background.includes("255, 255, 255") && !snapshot.visual.background.includes("255 255 255");
-  const hasColorRange = snapshot.visual.accentColors.length >= 3;
+  const primaryFonts = snapshot.visual.fontFamilies.flatMap((font) => {
+    const first = firstFontFamily(font);
+    return first ? [first] : [];
+  });
+  const usesDistinctiveType = primaryFonts.some((font) => !GENERIC_FONTS.some((generic) => font.includes(generic)));
+  const hasSkyBlueIdentity = snapshot.visual.accentColors.some((color) => matchesRgb(color, SKY_BLUE_TARGETS));
+  const hasLightSkyBase = matchesRgb(snapshot.visual.background, LIGHT_SKY_TARGETS);
+  const hasColorRange = snapshot.visual.accentColors.length >= 4 && hasHueSeparation(snapshot.visual.accentColors);
   let score = 0;
 
-  if (usesDistinctiveType) score += 7;
-  if (hasDarkAtmosphericBase) score += 5;
-  if (hasColorRange) score += 5;
-  if (snapshot.visual.hasAtmosphere) score += 5;
-  if (!snapshot.visual.hasGenericPurpleGradient) score += 3;
+  if (usesDistinctiveType) score += 6;
+  if (hasSkyBlueIdentity) score += 7;
+  if (hasLightSkyBase) score += 4;
+  if (hasColorRange) score += 4;
+  if (snapshot.visual.hasAtmosphere) score += 2;
+  if (!snapshot.visual.hasGenericPurpleGradient) score += 2;
 
-  if (score < 18) {
+  if (score < 22) {
     notes.push("Visual direction is too generic for the required distinctive music product.");
   }
 
@@ -142,7 +225,7 @@ export function scoreUiSnapshot(snapshot: UiStyleSnapshot): UiStyleScore {
 
   const totalBeforeCaps = Math.round(Object.values(categories).reduce((sum, value) => sum + value, 0));
   const missingFeatureCount = REQUIRED_FEATURES.filter((feature) => !snapshot.features[feature]).length;
-  const genericVisualPenalty = snapshot.visual.hasGenericPurpleGradient ? 86 : 100;
+  const genericVisualPenalty = snapshot.visual.hasGenericPurpleGradient ? 86 : categories.visual < 22 ? 90 : 100;
   const featureCap = missingFeatureCount > 0 ? 90 - missingFeatureCount : 100;
   const total = Math.min(totalBeforeCaps, genericVisualPenalty, featureCap);
   const passed = total > 90;

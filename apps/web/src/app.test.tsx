@@ -124,13 +124,38 @@ describe("App", () => {
     expect(screen.getByTestId("ui-style-root")).not.toBeNull();
   });
 
-  it("submits new keyword and shows empty state", async () => {
-    apiMocks.search.mockResolvedValueOnce([{ source: "migu", total: songs.length, songs }]).mockResolvedValueOnce([]);
+  it("renders active controls through local shadcn-style primitives", async () => {
     renderApp();
 
-    await userEvent.clear(screen.getByPlaceholderText("搜索歌曲、歌手或专辑"));
-    await userEvent.type(screen.getByPlaceholderText("搜索歌曲、歌手或专辑"), "不存在");
+    expect(await screen.findByTestId("shadcn-button:primary-play")).not.toBeNull();
+    expect(screen.getByTestId("shadcn-input:music-search")).toBe(
+      screen.getByRole("searchbox", { name: "搜索歌曲、歌手或专辑" }),
+    );
+    expect(screen.getAllByTestId(/shadcn-card:/).length).toBeGreaterThanOrEqual(8);
+    expect(screen.getAllByTestId(/shadcn-button:/).length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("submits new keyword from an accessible search field and shows loading and empty states", async () => {
+    let resolveSecondSearch: (value: []) => void = () => {};
+    apiMocks.search.mockResolvedValueOnce([{ source: "migu", total: songs.length, songs }]).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveSecondSearch = resolve;
+      }),
+    );
+    renderApp();
+
+    const searchField = screen.getByRole("searchbox", { name: "搜索歌曲、歌手或专辑" });
+    expect(searchField.getAttribute("type")).toBe("search");
+    expect(searchField.getAttribute("name")).toBe("keyword");
+    expect(searchField.getAttribute("autocomplete")).toBe("off");
+    expect(searchField.getAttribute("placeholder")).toBe("搜索歌曲、歌手或专辑…");
+
+    await userEvent.clear(searchField);
+    await userEvent.type(searchField, "不存在");
     await userEvent.click(screen.getByRole("button", { name: "搜索" }));
+
+    expect((await screen.findByRole("button", { name: "搜索中…" })).hasAttribute("disabled")).toBe(true);
+    resolveSecondSearch([]);
 
     await waitFor(() => {
       expect(apiMocks.search).toHaveBeenLastCalledWith({ keyword: "不存在", sources: ["migu", "netease", "qq"] });
@@ -263,6 +288,33 @@ describe("App", () => {
     await userEvent.click(
       within(screen.getByRole("region", { name: "Studio Mix" })).getByRole("button", { name: "晴天" }),
     );
+  });
+
+  it("renders decorative album art with stable image dimensions", async () => {
+    renderApp();
+
+    const coverImages = await screen.findAllByRole("presentation");
+
+    expect(coverImages.length).toBeGreaterThanOrEqual(3);
+    for (const image of coverImages) {
+      expect(image.getAttribute("width")).not.toBeNull();
+      expect(image.getAttribute("height")).not.toBeNull();
+    }
+  });
+
+  it("gives the compact mini player an accessible play label", async () => {
+    renderApp();
+    usePlayerStore.getState().setCurrent(songs[0]);
+
+    expect(screen.getByRole("button", { name: "底部播放器播放" })).not.toBeNull();
+  });
+
+  it("keeps song-row actions as sibling buttons instead of invalid nested controls", async () => {
+    renderApp();
+
+    const firstSongRow = await screen.findByRole("button", { name: /播放 晴天/ });
+
+    expect(firstSongRow.querySelector("button")).toBeNull();
   });
 
   it("starts current song from play control when the audio element has no source", async () => {

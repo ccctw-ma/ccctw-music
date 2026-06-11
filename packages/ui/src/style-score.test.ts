@@ -13,9 +13,9 @@ const completeMusicSnapshot: UiStyleSnapshot = {
     player: true,
   },
   visual: {
-    background: "rgb(4, 11, 22)",
-    accentColors: ["rgb(103, 232, 249)", "rgb(245, 158, 11)", "rgb(96, 165, 250)"],
-    fontFamilies: ["Fraunces", "Avenir Next", "Georgia"],
+    background: "rgb(240, 249, 255)",
+    accentColors: ["rgb(2, 132, 199)", "rgb(14, 165, 233)", "rgb(56, 189, 248)", "rgb(245, 158, 11)"],
+    fontFamilies: ["Righteous", "Poppins", "Avenir Next"],
     hasAtmosphere: true,
     hasGenericPurpleGradient: false,
   },
@@ -62,6 +62,57 @@ describe("scoreUiSnapshot", () => {
         ...completeMusicSnapshot.composition,
         hasAsymmetry: false,
         hasMotion: false,
+      },
+    });
+
+    expect(score.total).toBeLessThanOrEqual(90);
+    expect(score.passed).toBe(false);
+    expect(score.notes).toContain("Visual direction is too generic for the required distinctive music product.");
+  });
+
+  it("rejects sky-blue styling when type and color direction are still generic", () => {
+    const score = scoreUiSnapshot({
+      ...completeMusicSnapshot,
+      visual: {
+        background: "rgb(255, 255, 255)",
+        accentColors: ["rgb(14, 165, 233)", "rgb(56, 189, 248)", "rgb(125, 211, 252)", "rgb(186, 230, 253)"],
+        fontFamilies: ["Inter", "Arial", "system-ui"],
+        hasAtmosphere: true,
+        hasGenericPurpleGradient: false,
+      },
+    });
+
+    expect(score.total).toBeLessThanOrEqual(90);
+    expect(score.passed).toBe(false);
+    expect(score.notes).toContain("Visual direction is too generic for the required distinctive music product.");
+  });
+
+  it("rejects palettes that only contain sky-blue variations and neutral colors", () => {
+    const score = scoreUiSnapshot({
+      ...completeMusicSnapshot,
+      visual: {
+        background: "rgb(240 249 255)",
+        accentColors: ["rgb(0 0 0)", "rgb(255 255 255)", "rgb(14 165 233)", "rgb(56 189 248)"],
+        fontFamilies: ["Righteous", "Poppins", "Avenir Next"],
+        hasAtmosphere: true,
+        hasGenericPurpleGradient: false,
+      },
+    });
+
+    expect(score.total).toBeLessThanOrEqual(90);
+    expect(score.passed).toBe(false);
+    expect(score.notes).toContain("Visual direction is too generic for the required distinctive music product.");
+  });
+
+  it("rejects colors that only contain sky-blue channel digits as substrings", () => {
+    const score = scoreUiSnapshot({
+      ...completeMusicSnapshot,
+      visual: {
+        background: "rgb(240, 249, 255)",
+        accentColors: ["rgb(214, 165, 233)", "rgb(245, 158, 11)", "rgb(251, 113, 133)", "rgb(45, 212, 191)"],
+        fontFamilies: ["Righteous", "Poppins", "Avenir Next"],
+        hasAtmosphere: true,
+        hasGenericPurpleGradient: false,
       },
     });
 
