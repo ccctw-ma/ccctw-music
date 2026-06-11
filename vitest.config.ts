@@ -14,6 +14,7 @@ export default defineConfig({
       include: [
         "apps/server/src/{cache,index}.ts",
         "apps/web/src/{app,stores/player-store}.tsx",
+        "apps/web/src/lib/direct-music-search.ts",
         "apps/web/src/stores/player-store.ts",
         "packages/api-client/src/index.ts",
         "packages/core/src/{formatters,lyrics,player}.ts",

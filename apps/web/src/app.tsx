@@ -1,4 +1,5 @@
 import type { LyricLine, Song } from "@ccctw-music/core";
+import type { MusicSource, SearchResult } from "@ccctw-music/core";
 import { createMusicApiClient } from "@ccctw-music/api-client";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { Badge, Button, Card, Input, Slider } from "./components/ui";
+import { resolveDirectPlayableUrl, searchDirectMusic } from "./lib/direct-music-search";
 import { songKey, usePlayerStore } from "./stores/player-store";
 
 const apiClient = createMusicApiClient({
@@ -36,6 +38,31 @@ const apiClient = createMusicApiClient({
 const SOURCES = ["migu", "netease", "qq"] as const;
 const BROWSE_LANES = ["新歌速递", "华语夜航", "城市电子", "复古浪漫"];
 const STUDIO_MIX_ID = "studio-mix";
+
+function bestScore(result: SearchResult) {
+  return result.songs[0]?.quality?.score ?? 0;
+}
+
+async function searchWithBrowserFirst(keyword: string) {
+  const direct = await searchDirectMusic({ keyword, sources: [...SOURCES] });
+  const directSources = new Set(direct.results.map((result) => result.source));
+  const serverSources = SOURCES.filter((source) => {
+    const directResult = direct.results.find((result) => result.source === source);
+    return direct.failedSources.includes(source) || !directResult || directResult.songs.length === 0;
+  });
+
+  if (serverSources.length === 0) {
+    return direct.results;
+  }
+
+  const serverResults = await apiClient.search({ keyword, sources: serverSources as MusicSource[] }).catch(() => []);
+  const merged = [
+    ...direct.results.filter((result) => result.songs.length > 0),
+    ...serverResults.filter((result) => !directSources.has(result.source) || result.songs.length > 0),
+  ];
+
+  return merged.sort((left, right) => bestScore(right) - bestScore(left));
+}
 
 function sourceName(source?: string) {
   const names: Record<string, string> = {
@@ -135,7 +162,7 @@ export function App() {
 
   const searchQuery = useQuery({
     queryKey: ["search", submittedKeyword],
-    queryFn: () => apiClient.search({ keyword: submittedKeyword, sources: [...SOURCES] }),
+    queryFn: () => searchWithBrowserFirst(submittedKeyword),
     enabled: submittedKeyword.trim().length > 0,
   });
 
@@ -199,6 +226,20 @@ export function App() {
             break;
           } catch {
             playableUrl = null;
+          }
+        }
+
+        if (!playableUrl) {
+          const directPlayableUrl = await resolveDirectPlayableUrl(candidate).catch(() => null);
+          if (directPlayableUrl) {
+            try {
+              loadQueue(nextQueue, playableSong);
+              await loadAndPlay(directPlayableUrl);
+              playableUrl = directPlayableUrl;
+              break;
+            } catch {
+              playableUrl = null;
+            }
           }
         }
 

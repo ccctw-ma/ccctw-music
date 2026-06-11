@@ -9,12 +9,22 @@ const apiMocks = vi.hoisted(() => ({
   lyric: vi.fn(),
 }));
 
+const directMocks = vi.hoisted(() => ({
+  searchDirectMusic: vi.fn(),
+  resolveDirectPlayableUrl: vi.fn(),
+}));
+
 vi.mock("@ccctw-music/api-client", () => ({
   createMusicApiClient: () => ({
     search: apiMocks.search,
     playableUrl: apiMocks.playableUrl,
     lyric: apiMocks.lyric,
   }),
+}));
+
+vi.mock("./lib/direct-music-search", () => ({
+  searchDirectMusic: directMocks.searchDirectMusic,
+  resolveDirectPlayableUrl: directMocks.resolveDirectPlayableUrl,
 }));
 
 const { App } = await import("./app");
@@ -56,10 +66,24 @@ const songs = [
     quality: { ...quality, sourceLabel: "网易云音乐", free: false, playable: false, score: 56 },
   },
 ];
+const qqSong = {
+  id: "3",
+  source: "qq" as const,
+  name: "稻香",
+  artists: [{ name: "周杰伦" }],
+  coverUrl: null,
+  duration: 180,
+  quality: { ...quality, sourceLabel: "QQ 音乐", free: false, playable: false, score: 58 },
+};
 
 beforeEach(() => {
   localStorage.clear();
   usePlayerStore.setState(usePlayerStore.getInitialState(), true);
+  directMocks.searchDirectMusic.mockResolvedValue({
+    results: [],
+    failedSources: ["migu", "netease", "qq"],
+  });
+  directMocks.resolveDirectPlayableUrl.mockResolvedValue(null);
   apiMocks.search.mockResolvedValue([{ source: "migu", total: songs.length, songs }]);
   apiMocks.playableUrl.mockResolvedValue({ source: "migu", url: "https://cdn.example.com/qingtian.mp3" });
   apiMocks.lyric.mockResolvedValue({
@@ -92,6 +116,8 @@ afterEach(() => {
   apiMocks.search.mockReset();
   apiMocks.playableUrl.mockReset();
   apiMocks.lyric.mockReset();
+  directMocks.searchDirectMusic.mockReset();
+  directMocks.resolveDirectPlayableUrl.mockReset();
   mediaMocks.play.mockReset();
   mediaMocks.pause.mockReset();
   mediaMocks.load.mockReset();
@@ -155,6 +181,70 @@ describe("App", () => {
     expect(screen.getAllByText("免费可播").length).toBeGreaterThan(0);
     expect(screen.getAllByText("标准音质").length).toBeGreaterThan(0);
     expect(screen.getAllByText((content) => content.includes("咪咕音乐")).length).toBeGreaterThan(0);
+  });
+
+  it("uses direct browser search results and only fills empty sources from server fallback", async () => {
+    directMocks.searchDirectMusic.mockResolvedValue({
+      results: [
+        { source: "migu", total: 1, songs: [songs[0]] },
+        { source: "netease", total: 1, songs: [songs[1]] },
+        { source: "qq", total: 0, songs: [] },
+      ],
+      failedSources: [],
+    });
+    apiMocks.search.mockResolvedValueOnce([]);
+
+    renderApp();
+
+    expect((await screen.findAllByRole("button", { name: /播放 晴天/ })).length).toBeGreaterThan(0);
+    expect(directMocks.searchDirectMusic).toHaveBeenCalledWith({
+      keyword: "周杰伦",
+      sources: ["migu", "netease", "qq"],
+    });
+    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["qq"] });
+  });
+
+  it("skips server fallback when all direct browser sources have songs", async () => {
+    directMocks.searchDirectMusic.mockResolvedValue({
+      results: [
+        { source: "migu", total: 1, songs: [songs[0]] },
+        { source: "qq", total: 1, songs: [qqSong] },
+        { source: "netease", total: 1, songs: [songs[1]] },
+      ],
+      failedSources: [],
+    });
+
+    renderApp();
+
+    expect(await screen.findByRole("button", { name: /播放 稻香/ })).not.toBeNull();
+    expect(apiMocks.search).not.toHaveBeenCalled();
+  });
+
+  it("fills failed direct browser sources from the server fallback", async () => {
+    directMocks.searchDirectMusic.mockResolvedValueOnce({
+      results: [{ source: "migu", total: 1, songs: [songs[0]] }],
+      failedSources: ["netease", "qq"],
+    });
+    apiMocks.search.mockResolvedValueOnce([{ source: "netease", total: 1, songs: [songs[1]] }]);
+
+    renderApp();
+
+    expect(await screen.findByRole("button", { name: /播放 晴天/ })).not.toBeNull();
+    expect(await screen.findByRole("button", { name: /播放 夜曲/ })).not.toBeNull();
+    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["netease", "qq"] });
+  });
+
+  it("keeps direct browser results when server fallback fails", async () => {
+    directMocks.searchDirectMusic.mockResolvedValue({
+      results: [{ source: "migu", total: 1, songs: [songs[0]] }],
+      failedSources: ["netease", "qq"],
+    });
+    apiMocks.search.mockRejectedValueOnce(new Error("server down"));
+
+    renderApp();
+
+    expect(await screen.findByRole("button", { name: /播放 晴天/ })).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /播放 夜曲/ })).toBeNull();
   });
 
   it("submits new keyword from an accessible search field and shows loading and empty states", async () => {
@@ -278,6 +368,38 @@ describe("App", () => {
 
     expect(apiMocks.playableUrl).toHaveBeenCalledWith("migu", "1");
     expect(screen.getByTestId("audio-player")).toHaveProperty("src", "https://cdn.example.com/server.mp3");
+  });
+
+  it("uses browser playable resolver before Cloudflare url fallback", async () => {
+    apiMocks.search.mockResolvedValueOnce([{ source: "netease", total: 1, songs: [songs[1]] }]);
+    directMocks.resolveDirectPlayableUrl.mockResolvedValueOnce("https://music.3e0.cn/?server=netease&type=url&id=2");
+
+    renderApp();
+    await userEvent.click(await screen.findByRole("button", { name: /播放 夜曲/ }));
+
+    expect(directMocks.resolveDirectPlayableUrl).toHaveBeenCalledWith(
+      expect.objectContaining({ source: "netease", id: "2" }),
+    );
+    expect(apiMocks.playableUrl).not.toHaveBeenCalled();
+    expect(screen.getByTestId("audio-player")).toHaveProperty(
+      "src",
+      "https://music.3e0.cn/?server=netease&type=url&id=2",
+    );
+  });
+
+  it("falls back to Cloudflare when browser playable resolver throws", async () => {
+    apiMocks.search.mockResolvedValueOnce([{ source: "netease", total: 1, songs: [songs[1]] }]);
+    directMocks.resolveDirectPlayableUrl.mockRejectedValueOnce(new Error("resolver down"));
+    apiMocks.playableUrl.mockResolvedValueOnce({
+      source: "netease",
+      url: "https://cdn.example.com/server-netease.mp3",
+    });
+
+    renderApp();
+    await userEvent.click(await screen.findByRole("button", { name: /播放 夜曲/ }));
+
+    expect(apiMocks.playableUrl).toHaveBeenCalledWith("netease", "2");
+    expect(screen.getByTestId("audio-player")).toHaveProperty("src", "https://cdn.example.com/server-netease.mp3");
   });
 
   it("skips unavailable search results and plays the next playable song", async () => {

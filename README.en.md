@@ -51,6 +51,7 @@ Provider behavior:
 
 - Default sources are `migu`, `netease`, and `qq`.
 - Cross-source search deduplicates repeated sources and requests providers concurrently.
+- Web search first asks the browser to call third-party music APIs directly. Sources that fail in the browser or return empty results are then filled by the Cloudflare Worker fallback.
 - Search results are returned by source. A single provider failure does not fail the whole search request.
 - Every song is normalized into the shared `Song` structure and includes a `quality` field for source, official status, free playback, quality level, and ranking score.
 - The API prioritizes official, free-playable, high-quality results, and the frontend shows source and quality badges.
@@ -58,7 +59,7 @@ Provider behavior:
 - Migu song details are loaded by `copyrightId` through `resourceinfo.do` first, then fall back to search results when needed.
 - Lyrics are cached for 24 hours. Search results and playable URLs are cached for 10 minutes.
 - Playable URLs are cached only when non-empty. Do not cache `null` or invalid URLs because that would block fallback.
-- The Web player first tries direct URLs from search results. If frontend direct playback fails, it requests the Cloudflare server to resolve a playable URL. If that also fails, it skips candidates and finally shows an interface error.
+- The Web player first tries direct URLs from search results. If no direct URL is available, it uses a browser-friendly third-party playback resolver first. If frontend resolution fails, it requests the Cloudflare server to resolve a playable URL. If that also fails, it skips candidates and finally shows an interface error.
 - Live playback is verified by `scripts/verify-live-playback.ts` through the production API and audio Range requests.
 
 ## Research References
@@ -67,6 +68,7 @@ Provider behavior:
 - [QQ Music vkey practice](https://www.cnblogs.com/Byme/p/9989544.html): QQ playback URLs still rely on `songmid + filename + vkey`.
 - [NeteaseCloudMusicApi notes](https://blog.csdn.net/gitblog_00564/article/details/161223949): NetEase commonly combines search, lyric, and song URL modules.
 - [@magicdawn/music-api](https://www.npmjs.com/package/@magicdawn/music-api): A reference for unified multi-source music API wrapping.
+- [DreamMeting API](https://music.3e0.cn/): Used as a browser-friendly fallback for NetEase playable URL resolution.
 
 ## Local Development
 

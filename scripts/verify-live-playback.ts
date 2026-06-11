@@ -1,12 +1,33 @@
+import { resolveDirectPlayableUrl, searchDirectMusic } from "../apps/web/src/lib/direct-music-search";
+
+type MusicSource = string;
+type SearchResult = {
+  source: MusicSource;
+  total: number;
+  songs: Song[];
+};
+type Song = {
+  id: string;
+  source: MusicSource;
+  name: string;
+  playableUrl?: string | null;
+  quality?: {
+    score: number;
+  };
+};
+
 const apiBaseUrl = process.env.PUBLIC_API_BASE_URL ?? "https://ccctw-music-api.1934202608.workers.dev";
 const keywords = (process.env.MUSIC_VERIFY_KEYWORD ?? "晴天,偏爱,海阔天空")
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);
-const sources = process.env.MUSIC_VERIFY_SOURCES ?? "migu,netease,qq";
+const sources = (process.env.MUSIC_VERIFY_SOURCES ?? "migu,netease,qq")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean) as MusicSource[];
 const REQUEST_TIMEOUT_MS = 15000;
 
-async function readJson(response) {
+async function readJson(response: Response) {
   const text = await response.text();
   try {
     return JSON.parse(text);
@@ -15,7 +36,7 @@ async function readJson(response) {
   }
 }
 
-async function fetchJson(url) {
+async function fetchJson(url: string | URL) {
   const response = await fetch(url, {
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
@@ -25,7 +46,7 @@ async function fetchJson(url) {
   };
 }
 
-async function checkAudioUrl(url) {
+async function checkAudioUrl(url: string) {
   const response = await fetch(url, {
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     headers: {
@@ -46,12 +67,16 @@ async function checkAudioUrl(url) {
 let playableCount = 0;
 let testedCount = 0;
 
-for (const keyword of keywords) {
+function bestScore(result: SearchResult) {
+  return result.songs[0]?.quality?.score ?? 0;
+}
+
+async function serverSearch(keyword: string, requestedSources: MusicSource[]) {
   const searchUrl = new URL("/v1/search", apiBaseUrl);
   searchUrl.searchParams.set("keyword", keyword);
   searchUrl.searchParams.set("page", "1");
   searchUrl.searchParams.set("pageSize", "5");
-  searchUrl.searchParams.set("sources", sources);
+  searchUrl.searchParams.set("sources", requestedSources.join(","));
 
   const { response: searchResponse, body: searchBody } = await fetchJson(searchUrl).catch((error) => ({
     response: { status: 0 },
@@ -60,11 +85,11 @@ for (const keyword of keywords) {
   console.log(
     JSON.stringify(
       {
-        step: "search",
+        step: "server-search",
         status: searchResponse.status,
         keyword,
-        sources,
-        groups: searchBody.data?.map((group) => ({
+        sources: requestedSources.join(","),
+        groups: searchBody.data?.map((group: SearchResult) => ({
           source: group.source,
           total: group.total,
           songs: group.songs?.length ?? 0,
@@ -75,20 +100,99 @@ for (const keyword of keywords) {
       2,
     ),
   );
+  return (searchBody.data ?? []) as SearchResult[];
+}
 
-  for (const group of searchBody.data ?? []) {
+async function clientFirstSearch(keyword: string) {
+  const direct: { results: SearchResult[]; failedSources: MusicSource[]; error?: Error } = await searchDirectMusic(
+    { keyword, pageSize: 5, sources: sources as never },
+    fetch,
+  ).catch((error: Error) => ({
+    results: [],
+    failedSources: sources,
+    error,
+  }));
+  console.log(
+    JSON.stringify(
+      {
+        step: "client-search",
+        keyword,
+        sources: sources.join(","),
+        groups: direct.results.map((group) => ({
+          source: group.source,
+          total: group.total,
+          songs: group.songs.length,
+        })),
+        failedSources: direct.failedSources,
+        error: direct.error?.message,
+      },
+      null,
+      2,
+    ),
+  );
+
+  const directSources = new Set(direct.results.map((result) => result.source));
+  const serverSources = sources.filter((source) => {
+    const directResult = direct.results.find((result) => result.source === source);
+    return direct.failedSources.includes(source) || !directResult || directResult.songs.length === 0;
+  });
+  const serverResults = serverSources.length ? await serverSearch(keyword, serverSources) : [];
+  return [
+    ...direct.results.filter((result) => result.songs.length > 0),
+    ...serverResults.filter((result) => !directSources.has(result.source) || result.songs.length > 0),
+  ].sort((left, right) => bestScore(right) - bestScore(left));
+}
+
+async function resolvePlayableUrl(song: Song) {
+  if (song.playableUrl) {
+    return {
+      urlStatus: "client-direct",
+      playableUrl: song.playableUrl,
+      error: undefined,
+    };
+  }
+
+  const directPlayableUrl = await resolveDirectPlayableUrl(song as never, fetch).catch(() => null);
+  if (directPlayableUrl) {
+    return {
+      urlStatus: "client-playable-resolver",
+      playableUrl: directPlayableUrl,
+      error: undefined,
+    };
+  }
+
+  const urlEndpoint = new URL(
+    `/v1/songs/${encodeURIComponent(song.source)}/${encodeURIComponent(song.id)}/url`,
+    apiBaseUrl,
+  );
+  const { response, body } = await fetchJson(urlEndpoint).catch((error) => ({
+    response: { status: 0 },
+    body: { error: error.message },
+  }));
+  return {
+    urlStatus: response.status,
+    playableUrl: body.data?.url ?? null,
+    error: body.error,
+  };
+}
+
+for (const keyword of keywords) {
+  const searchResults = await clientFirstSearch(keyword);
+
+  for (const group of searchResults) {
     for (const song of (group.songs ?? []).slice(0, 3)) {
       testedCount += 1;
-      const urlEndpoint = new URL(
-        `/v1/songs/${encodeURIComponent(song.source)}/${encodeURIComponent(song.id)}/url`,
-        apiBaseUrl,
-      );
-      const { response, body } = await fetchJson(urlEndpoint).catch((error) => ({
-        response: { status: 0 },
-        body: { error: error.message },
-      }));
-      const playableUrl = body.data?.url ?? null;
-      const audio = playableUrl ? await checkAudioUrl(playableUrl).catch((error) => ({ error: error.message })) : null;
+      const { urlStatus, playableUrl, error } = await resolvePlayableUrl(song);
+      const audio: {
+        ok?: boolean;
+        status?: number;
+        contentType?: string | null;
+        contentRange?: string | null;
+        cors?: string | null;
+        error?: string;
+      } | null = playableUrl
+        ? await checkAudioUrl(playableUrl).catch((error: Error) => ({ error: error.message }))
+        : null;
       if (audio?.ok) {
         playableCount += 1;
       }
@@ -101,10 +205,10 @@ for (const keyword of keywords) {
             source: song.source,
             id: song.id,
             name: song.name,
-            urlStatus: response.status,
+            urlStatus,
             hasPlayableUrl: Boolean(playableUrl),
             audio,
-            error: body.error,
+            error,
           },
           null,
           2,

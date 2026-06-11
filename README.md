@@ -51,6 +51,7 @@ Provider 行为：
 
 - 默认搜索来源为 `migu`、`netease`、`qq`。
 - 跨来源搜索会去重重复 source，并并发请求各 Provider。
+- Web 端搜索优先由浏览器直接请求三方音乐接口；浏览器直连失败或返回空结果的来源，再由 Cloudflare Worker 服务端兜底补齐。
 - 搜索结果按来源分组返回，单个来源失败不会导致整体搜索失败。
 - 每首歌都会归一为统一 `Song` 结构，并包含 `quality` 字段标识来源、正版、免费可播、音质和排序分。
 - API 会优先返回正版、免费可播、高质量的结果，前端会展示来源和质量标签。
@@ -58,7 +59,7 @@ Provider 行为：
 - 咪咕歌曲详情优先通过 `copyrightId` 调用 `resourceinfo.do` 获取准确元数据，失败时回退到搜索结果。
 - 歌词缓存 24 小时，搜索和播放 URL 缓存 10 分钟。
 - 播放 URL 只缓存非空结果，禁止缓存 `null` 或失效 URL，避免阻断 fallback。
-- 前端播放时优先尝试搜索结果内的直链；如果前端直连失败，再请求 Cloudflare 服务端解析播放 URL；如果仍失败，会自动切换候选歌曲并最终提示接口错误。
+- 前端播放时优先尝试搜索结果内的直链；如果没有直链，会优先使用浏览器友好的三方播放解析器；如果前端解析失败，再请求 Cloudflare 服务端解析播放 URL；如果仍失败，会自动切换候选歌曲并最终提示接口错误。
 - 真实播放能力由 `scripts/verify-live-playback.ts` 对线上 API 和音频 Range 请求做拨测。
 
 ## 调研参考
@@ -67,6 +68,7 @@ Provider 行为：
 - [QQ 音乐 vkey 获取实践](https://www.cnblogs.com/Byme/p/9989544.html)：QQ 播放 URL 仍依赖 `songmid + filename + vkey` 生成。
 - [NeteaseCloudMusicApi 相关说明](https://blog.csdn.net/gitblog_00564/article/details/161223949)：网易云常用搜索、歌词、歌曲播放 URL 模块组合。
 - [@magicdawn/music-api](https://www.npmjs.com/package/@magicdawn/music-api)：多来源音乐 API 的统一封装思路。
+- [DreamMeting API](https://music.3e0.cn/)：作为浏览器友好的网易云播放 URL 解析兜底。
 
 ## 本地开发
 
