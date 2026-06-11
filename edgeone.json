@@ -6,6 +6,7 @@
   "env": {
     "APP_ENV": "production",
     "RUNTIME": "edgeone",
+    "UNIFIED_API_BASE_URL": "https://ccctw-music-api.1934202608.workers.dev",
     "PUBLIC_API_BASE_URL": "https://music.ccctw.com"
   }
 }

@@ -1,45 +1,54 @@
-import { describe, expect, it, vi } from "vitest";
-
-const providerMocks = vi.hoisted(() => ({
-  searchAcrossProviders: vi.fn(),
-}));
-
-vi.mock("@ccctw-music/music-providers", async (importOriginal: () => Promise<object>) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    searchAcrossProviders: providerMocks.searchAcrossProviders,
-  };
-});
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { default: entry } = await import("./entry-edgeone");
 
-interface HealthResponse {
-  runtime: string;
-}
-
 describe("EdgeOne entry", () => {
-  it("delegates to Hono app and returns health", async () => {
-    const response = await entry.fetch(new Request("http://localhost/health"), {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("proxies health requests to the unified Cloudflare backend", async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, runtime: "cloudflare-workers" }), {
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetcher);
+
+    const response = await entry.fetch(new Request("https://music.ccctw.com/health"), {
       APP_ENV: "test",
       RUNTIME: "edgeone",
     });
 
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body).toMatchObject({
-      ok: true,
-      service: "ccctw-music-api",
-      runtime: "edgeone",
-    });
+    expect(body).toMatchObject({ ok: true, runtime: "cloudflare-workers" });
+    expect(fetcher).toHaveBeenCalledWith(
+      new URL("https://ccctw-music-api.1934202608.workers.dev/health"),
+      expect.objectContaining({
+        method: "GET",
+        body: undefined,
+        redirect: "manual",
+      }),
+    );
   });
 
-  it("falls back to cloudflare-workers runtime when RUNTIME is not set", async () => {
-    const response = await entry.fetch(new Request("http://localhost/health"), {
+  it("uses configured unified API base URL and preserves path, query, and method", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response("{}", { status: 201 }));
+    vi.stubGlobal("fetch", fetcher);
+
+    const response = await entry.fetch(new Request("https://music.ccctw.com/v1/search?keyword=test"), {
       APP_ENV: "test",
+      RUNTIME: "edgeone",
+      UNIFIED_API_BASE_URL: "https://api.example.com/base",
     });
 
-    const body = (await response.json()) as HealthResponse;
-    expect(body.runtime).toBe("cloudflare-workers");
+    expect(response.status).toBe(201);
+    expect(fetcher).toHaveBeenCalledWith(
+      new URL("https://api.example.com/v1/search?keyword=test"),
+      expect.objectContaining({
+        method: "GET",
+      }),
+    );
   });
 });

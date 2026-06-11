@@ -1,8 +1,18 @@
 /**
- * EdgeOne Pages Function — catch-all API handler.
+ * EdgeOne Pages Function — legacy /api/* proxy handler.
  *
- * All /api/* requests are routed to the Hono app via the EdgeOne entry point.
- * EdgeOne KV bindings are available through env.MUSIC_CACHE with the same
- * get/put API as Cloudflare KV, so the existing cache layer works unchanged.
+ * Current Web traffic uses /v1/*, but this keeps older /api/* links routed to
+ * the unified Cloudflare backend instead of creating a second EdgeOne data
+ * plane.
  */
-export { default as onRequest } from "../../../src/entry-edgeone";
+import edgeoneEntry from "../../../src/entry-edgeone";
+import type { Env } from "../../../src/env";
+
+interface EdgeOneContext {
+  request: Request;
+  env: Env;
+}
+
+export function onRequest(context: EdgeOneContext) {
+  return edgeoneEntry.fetch(context.request, context.env);
+}

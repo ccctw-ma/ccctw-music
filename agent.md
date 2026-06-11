@@ -69,6 +69,7 @@ Use `pnpm quality` for the standard combined quality gate.
 - Do not deploy Cloudflare Pages as the Web release path. The Web SPA is served by the Cloudflare Worker assets binding.
 - Keep Cloudflare custom domain / route bindings in the Cloudflare dashboard unless the GitHub token explicitly has Zone Workers Routes permissions.
 - EdgeOne must be configured as a static React SPA, not as Next.js/OpenNext. Keep `edgeone.json` build settings as top-level fields.
+- EdgeOne API functions should proxy `/health` and `/v1/*` to the unified Cloudflare Worker API; do not create a separate EdgeOne data plane for KV, database, or object storage unless the architecture is explicitly changed.
 - Do not reintroduce `next.config.*`, root `pages/`, or npm `package-lock.json`; these can make EdgeOne mis-detect the project as Next.js.
 - Production Web and API traffic should use `music.ccctw.com`, with DNS splitting domestic/Hong Kong traffic to EdgeOne and overseas traffic to Cloudflare.
 - Cloudflare Workers credentials must stay in GitHub Secrets.

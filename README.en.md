@@ -109,10 +109,12 @@ See `docs/quality-gates.md` for details.
 Deployment must be triggered by automated platforms only. Local manual deployment is not the main deployment path.
 
 - Overseas route: Cloudflare Worker, service name `ccctw-music-api`, custom domain `https://music.ccctw.com`.
-- Mainland China / Hong Kong route: Tencent EdgeOne Pages, project name `ccctw-music`, serving Web static assets and EdgeOne Functions for `/health` and `/v1/*` APIs.
+- Mainland China / Hong Kong route: Tencent EdgeOne Pages, project name `ccctw-music`, serving Web static assets and EdgeOne Functions that proxy `/health` and `/v1/*` to the unified Cloudflare Worker API.
 - Cloudflare Web static assets: `apps/web/dist` is published with the Worker through the `[assets]` section in `apps/server/wrangler.toml`.
 - The Cloudflare Worker custom domain for `music.ccctw.com` is maintained in the dashboard. CI only updates the Worker and does not manage routes in `wrangler.toml`.
 - EdgeOne Web static assets: root `edgeone.json` must use top-level `buildCommand`, `installCommand`, and `outputDirectory`; the build command is `pnpm --filter @ccctw-music/web build`, and the output directory is `apps/web/dist`.
+- Unified data layer: cache, database, and object storage are accessed and maintained by the Cloudflare Worker, currently using Cloudflare KV/D1/R2. EdgeOne does not bind separate KV/DB/COS resources, preventing domestic and overseas data divergence.
+- The EdgeOne API proxy target is configured by `UNIFIED_API_BASE_URL`, defaulting to `https://ccctw-music-api.1934202608.workers.dev` to avoid same-domain DNS routing loops.
 - Cloudflare CI flow: push to `main` -> Quality Gate -> Build Web -> Deploy Worker -> Verify live playback.
 - Do not keep `next.config.*`, root `pages/`, or npm `package-lock.json` in the repository, because they can make EdgeOne load the OpenNext builder by mistake.
 - Cloudflare Pages is no longer deployed. Dual-route production traffic is split by DNS to EdgeOne and Cloudflare.

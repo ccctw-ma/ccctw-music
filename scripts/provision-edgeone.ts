@@ -34,7 +34,6 @@ const secretKey = process.env.EDGEONE_SECRET_KEY;
 
 const names = {
   pagesProject: process.env.EDGEONE_PAGES_PROJECT ?? "ccctw-music",
-  kv: process.env.EDGEONE_KV_NAME ?? "ccctw-music-cache",
   zoneId: process.env.EDGEONE_ZONE_ID ?? "",
 };
 
@@ -47,7 +46,6 @@ if (!secretId || !secretKey) {
       "  EDGEONE_SECRET_KEY=<tencent-cloud-secret-key>",
       "Optional:",
       "  EDGEONE_PAGES_PROJECT=ccctw-music",
-      "  EDGEONE_KV_NAME=ccctw-music-cache",
       "  EDGEONE_ZONE_ID=<your-zone-id>",
     ].join("\n"),
   );
@@ -137,22 +135,6 @@ async function edgeoneApi(action: string, payload: Record<string, any>) {
   return result.Response;
 }
 
-async function ensureKvNamespace() {
-  // Create KV namespace via EdgeOne API
-  // Note: EdgeOne Pages KV may need to be created through the Pages project settings
-  // This is a placeholder that will be updated based on the actual EdgeOne API
-  try {
-    const result = await edgeoneApi("CreateKVNamespace", {
-      Name: names.kv,
-    });
-    return result;
-  } catch (error: any) {
-    console.warn(`KV namespace creation: ${error.message}`);
-    console.warn("You may need to create the KV namespace manually in the EdgeOne console.");
-    return null;
-  }
-}
-
 async function ensurePagesProject() {
   // EdgeOne Pages projects are typically created through the dashboard or CLI
   // The API for Pages project management may differ from Workers
@@ -190,10 +172,7 @@ console.log("🚀 Provisioning EdgeOne resources...\n");
 console.log("Note: EdgeOne Pages projects are best created through the dashboard at https://pages.edgeone.ai");
 console.log("This script will create the config file and attempt API-based provisioning where possible.\n");
 
-const [pagesResult, kvResult] = await Promise.all([
-  settle("pagesProject", ensurePagesProject),
-  settle("kv", ensureKvNamespace),
-]);
+const pagesResult = await settle("pagesProject", ensurePagesProject);
 
 // Write edgeone.json config
 const edgeoneConfig = {
@@ -201,15 +180,8 @@ const edgeoneConfig = {
   env: {
     APP_ENV: "production",
     RUNTIME: "edgeone",
+    UNIFIED_API_BASE_URL: "https://ccctw-music-api.1934202608.workers.dev",
   },
-  kv: kvResult.value
-    ? [
-        {
-          binding: "MUSIC_CACHE",
-          id: kvResult.value.Id ?? kvResult.value?.id ?? "<kv-namespace-id>",
-        },
-      ]
-    : [],
 };
 
 await writeFile(edgeoneConfigPath, JSON.stringify(edgeoneConfig, null, 2) + "\n");
@@ -222,12 +194,6 @@ console.log(
         name: names.pagesProject,
         error: pagesResult.error,
       },
-      kv: {
-        status: kvResult.status,
-        binding: "MUSIC_CACHE",
-        name: names.kv,
-        error: kvResult.error,
-      },
       config: {
         path: "apps/server/edgeone.json",
         status: "written",
@@ -237,8 +203,8 @@ console.log(
         "2. Connect your GitHub repository",
         "3. Set build command: pnpm --filter @ccctw-music/web build",
         "4. Set output directory: apps/web/dist",
-        "5. Create a KV namespace and update the id in apps/server/edgeone.json",
-        "6. Set environment variables: APP_ENV=production, RUNTIME=edgeone",
+        "5. Set environment variables: APP_ENV=production, RUNTIME=edgeone, UNIFIED_API_BASE_URL=https://ccctw-music-api.1934202608.workers.dev",
+        "6. Do not bind EdgeOne KV/DB/COS for this app; API data is unified through Cloudflare Worker",
         "7. Configure DNSPod: domestic → EdgeOne, overseas → Cloudflare",
       ],
     },

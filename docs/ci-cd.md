@@ -101,6 +101,7 @@ pnpm deploy:server
 - GitHub Actions 中的 Web 构建使用 `PUBLIC_API_BASE_URL=https://music.ccctw.com`。
 - `apps/server/wrangler.toml` 通过 `[assets]` 挂载 `apps/web/dist`，因此不再部署 Cloudflare Pages。
 - `music.ccctw.com` 的 Worker 自定义域名在 Cloudflare 控制台维护，CI 不通过 `wrangler.toml` 管理 routes，避免要求额外的 Zone Workers Routes 权限。
+- Cloudflare Worker 是统一后端源站，负责 Provider fallback、KV 缓存、D1 数据库和对象存储访问。
 - `pnpm test:live-playback` 在 Worker 部署后对 `https://music.ccctw.com` 做真实播放拨测。
 
 ## EdgeOne 部署
@@ -124,5 +125,6 @@ apps/web/dist
 
 - 根目录 `edgeone.json` 的 `buildCommand`、`installCommand`、`outputDirectory` 必须是顶层字段。
 - 仓库内不要保留 `next.config.*`、根目录 `pages/` 或 npm `package-lock.json`，否则 EdgeOne 可能误加载 OpenNext 构建器并查找 `.next/required-server-files.json`。
-- EdgeOne 函数需要覆盖 `/health` 和 `/v1/*`，确保国内线路的 API 与 Cloudflare 路径一致。
-- EdgeOne 控制台还需要绑定 `MUSIC_CACHE` KV。
+- EdgeOne 函数需要覆盖 `/health` 和 `/v1/*`，并代理到统一 Cloudflare Worker API，确保国内线路的 API 路径与海外一致。
+- EdgeOne 需要设置 `UNIFIED_API_BASE_URL=https://ccctw-music-api.1934202608.workers.dev`。
+- EdgeOne 不需要绑定 `MUSIC_CACHE` KV、数据库或对象存储；这些资源统一由 Cloudflare Worker 访问，避免双后端数据分裂。

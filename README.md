@@ -109,10 +109,12 @@ pnpm quality
 部署只能通过自动化平台触发，禁止本地手动部署作为主流程。
 
 - 海外线路：Cloudflare Worker，服务名 `ccctw-music-api`，自定义域名 `https://music.ccctw.com`。
-- 国内/中国香港线路：Tencent EdgeOne Pages，项目名 `ccctw-music`，用于承载 Web 静态资源，并通过 EdgeOne 函数承接 `/health` 和 `/v1/*` API。
+- 国内/中国香港线路：Tencent EdgeOne Pages，项目名 `ccctw-music`，用于承载 Web 静态资源，并通过 EdgeOne 函数把 `/health` 和 `/v1/*` 代理到统一 Cloudflare Worker API。
 - Cloudflare Web 静态资源：`apps/web/dist` 通过 `apps/server/wrangler.toml` 的 `[assets]` 配置随 Worker 一起发布。
 - `music.ccctw.com` 的 Cloudflare Worker 自定义域名在控制台维护，CI 只更新 Worker，不在 `wrangler.toml` 中管理 routes。
 - EdgeOne Web 静态资源：根目录 `edgeone.json` 使用顶层 `buildCommand`、`installCommand`、`outputDirectory` 配置，构建命令为 `pnpm --filter @ccctw-music/web build`，输出目录为 `apps/web/dist`。
+- 统一数据层：Cache、DB、对象存储统一由 Cloudflare Worker 访问和维护，当前使用 Cloudflare KV/D1/R2；EdgeOne 不绑定独立 KV/DB/COS，避免国内外数据分裂。
+- EdgeOne API 代理目标由 `UNIFIED_API_BASE_URL` 配置，默认指向 `https://ccctw-music-api.1934202608.workers.dev`，用于避免同域 DNS 分流下的代理回环。
 - Cloudflare CI 流程：提交到 `main` -> Quality Gate -> Build Web -> Deploy Worker -> Verify live playback。
 - 仓库内禁止保留 `next.config.*`、根目录 `pages/` 或 npm `package-lock.json` 等 Next.js 检测信号，避免 EdgeOne 误加载 OpenNext 构建器。
 - 后续不再部署 Cloudflare Pages，双线流量由 DNS 分流到 EdgeOne 和 Cloudflare。
