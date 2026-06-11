@@ -2,9 +2,6 @@ name = "ccctw-music-api"
 main = "src/index.ts"
 compatibility_date = "2026-06-10"
 compatibility_flags = ["nodejs_compat"]
-routes = [
-  { pattern = "music.ccctw.com", custom_domain = true }
-]
 
 [assets]
 directory = "../web/dist"

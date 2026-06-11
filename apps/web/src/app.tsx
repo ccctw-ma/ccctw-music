@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Clock3,
   Compass,
-  Disc3,
   Download,
   Heart,
   Home,
@@ -406,8 +405,8 @@ export function App() {
 
       <aside className="side-rail" aria-label="主导航">
         <a className="brand-mark" href="/" aria-label="CCCTW Music 首页">
-          <Disc3 size={21} />
-          <strong>网易云音乐</strong>
+          <img src="/brand/ccctw-music-mark.svg" alt="" aria-hidden="true" />
+          <strong>CCCTW Music</strong>
         </a>
         <nav className="rail-nav" aria-label="音乐导航">
           <a className="active" href="#discover" aria-label="发现音乐">

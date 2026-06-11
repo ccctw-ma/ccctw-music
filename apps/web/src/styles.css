@@ -177,14 +177,12 @@ p {
   text-decoration: none;
 }
 
-.brand-mark svg {
-  width: 28px;
-  height: 28px;
-  padding: 6px;
-  border-radius: 50%;
-  color: #fff;
-  background: var(--netease-red);
-  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.34);
+.brand-mark img {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  filter: drop-shadow(0 10px 20px rgba(14, 165, 233, 0.34));
 }
 
 .rail-nav {

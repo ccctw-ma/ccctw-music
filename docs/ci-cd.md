@@ -100,6 +100,7 @@ pnpm deploy:server
 
 - GitHub Actions 中的 Web 构建使用 `PUBLIC_API_BASE_URL=https://music.ccctw.com`。
 - `apps/server/wrangler.toml` 通过 `[assets]` 挂载 `apps/web/dist`，因此不再部署 Cloudflare Pages。
+- `music.ccctw.com` 的 Worker 自定义域名在 Cloudflare 控制台维护，CI 不通过 `wrangler.toml` 管理 routes，避免要求额外的 Zone Workers Routes 权限。
 - `pnpm test:live-playback` 在 Worker 部署后对 `https://music.ccctw.com` 做真实播放拨测。
 
 ## EdgeOne 部署

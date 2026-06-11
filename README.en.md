@@ -111,6 +111,7 @@ Deployment must be triggered by automated platforms only. Local manual deploymen
 - Overseas route: Cloudflare Worker, service name `ccctw-music-api`, custom domain `https://music.ccctw.com`.
 - Mainland China / Hong Kong route: Tencent EdgeOne Pages, project name `ccctw-music`, serving Web static assets and EdgeOne Functions for `/health` and `/v1/*` APIs.
 - Cloudflare Web static assets: `apps/web/dist` is published with the Worker through the `[assets]` section in `apps/server/wrangler.toml`.
+- The Cloudflare Worker custom domain for `music.ccctw.com` is maintained in the dashboard. CI only updates the Worker and does not manage routes in `wrangler.toml`.
 - EdgeOne Web static assets: root `edgeone.json` must use top-level `buildCommand`, `installCommand`, and `outputDirectory`; the build command is `pnpm --filter @ccctw-music/web build`, and the output directory is `apps/web/dist`.
 - Cloudflare CI flow: push to `main` -> Quality Gate -> Build Web -> Deploy Worker -> Verify live playback.
 - Do not keep `next.config.*`, root `pages/`, or npm `package-lock.json` in the repository, because they can make EdgeOne load the OpenNext builder by mistake.

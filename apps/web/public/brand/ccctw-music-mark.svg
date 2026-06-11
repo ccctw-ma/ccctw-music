@@ -18,27 +18,32 @@
       <stop stop-color="#ffffff" />
       <stop offset="1" stop-color="#bae6fd" />
     </linearGradient>
+    <filter id="ccctw-shadow" x="88" y="100" width="848" height="828" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="34" stdDeviation="30" flood-color="#02111f" flood-opacity="0.4" />
+    </filter>
   </defs>
   <rect width="1024" height="1024" rx="226" fill="url(#ccctw-bg)" />
   <path d="M104 175c178-96 382-86 538 26 154 110 246 292 232 480 72-96 106-212 94-332C938 170 798 50 610 27 430 6 240 58 104 175Z" fill="url(#ccctw-glow)" />
   <path d="M114 758c130 132 308 196 504 168 142-20 250-82 326-172-82 42-182 64-300 62-194-2-358-62-530-58Z" fill="#7dd3fc" opacity="0.14" />
-  <circle
-    cx="512"
-    cy="512"
-    r="302"
-    stroke="url(#ccctw-orbit)"
-    stroke-linecap="round"
-    stroke-width="86"
-    stroke-dasharray="1415 512"
-    transform="rotate(-36 512 512)"
-  />
-  <circle cx="326" cy="286" r="30" fill="#e0f2fe" />
-  <circle cx="764" cy="340" r="24" fill="#7dd3fc" />
-  <circle cx="714" cy="752" r="20" fill="#0ea5e9" />
-  <path d="M438 370c0-28 30-46 55-32l218 126c24 14 24 49 0 63L493 653c-25 14-55-4-55-32V370Z" fill="url(#ccctw-play)" />
-  <rect x="330" y="684" width="48" height="102" rx="24" fill="#e0f2fe" opacity="0.78" />
-  <rect x="404" y="628" width="48" height="158" rx="24" fill="#bae6fd" opacity="0.9" />
-  <rect x="478" y="696" width="48" height="90" rx="24" fill="#7dd3fc" opacity="0.82" />
-  <rect x="552" y="650" width="48" height="136" rx="24" fill="#38bdf8" opacity="0.76" />
-  <rect x="626" y="704" width="48" height="82" rx="24" fill="#0ea5e9" opacity="0.7" />
+  <g filter="url(#ccctw-shadow)">
+    <circle
+      cx="512"
+      cy="512"
+      r="302"
+      stroke="url(#ccctw-orbit)"
+      stroke-linecap="round"
+      stroke-width="86"
+      stroke-dasharray="1415 512"
+      transform="rotate(-36 512 512)"
+    />
+    <circle cx="326" cy="286" r="30" fill="#e0f2fe" />
+    <circle cx="764" cy="340" r="24" fill="#7dd3fc" />
+    <circle cx="714" cy="752" r="20" fill="#0ea5e9" />
+    <path d="M438 370c0-28 30-46 55-32l218 126c24 14 24 49 0 63L493 653c-25 14-55-4-55-32V370Z" fill="url(#ccctw-play)" />
+    <rect x="330" y="684" width="48" height="102" rx="24" fill="#e0f2fe" opacity="0.78" />
+    <rect x="404" y="628" width="48" height="158" rx="24" fill="#bae6fd" opacity="0.9" />
+    <rect x="478" y="696" width="48" height="90" rx="24" fill="#7dd3fc" opacity="0.82" />
+    <rect x="552" y="650" width="48" height="136" rx="24" fill="#38bdf8" opacity="0.76" />
+    <rect x="626" y="704" width="48" height="82" rx="24" fill="#0ea5e9" opacity="0.7" />
+  </g>
 </svg>

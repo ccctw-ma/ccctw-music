@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 400" fill="none">
+  <defs>
+    <linearGradient id="ccctw-logo-bg" x1="116" x2="872" y1="78" y2="938" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0ea5e9" />
+      <stop offset="0.42" stop-color="#075985" />
+      <stop offset="1" stop-color="#04111f" />
+    </linearGradient>
+    <radialGradient id="ccctw-logo-glow" cx="0" cy="0" r="1" gradientTransform="matrix(0 422 -422 0 356 230)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e0f2fe" stop-opacity="0.64" />
+      <stop offset="1" stop-color="#0ea5e9" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ccctw-logo-orbit" x1="216" x2="818" y1="194" y2="826" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f0f9ff" />
+      <stop offset="0.46" stop-color="#7dd3fc" />
+      <stop offset="1" stop-color="#0ea5e9" />
+    </linearGradient>
+    <linearGradient id="ccctw-logo-play" x1="423" x2="666" y1="354" y2="664" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff" />
+      <stop offset="1" stop-color="#bae6fd" />
+    </linearGradient>
+    <filter id="ccctw-logo-shadow" x="52" y="44" width="316" height="316" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="22" stdDeviation="18" flood-color="#02111f" flood-opacity="0.42" />
+    </filter>
+  </defs>
+  <g filter="url(#ccctw-logo-shadow)" transform="translate(64 56) scale(0.28125)">
+    <rect width="1024" height="1024" rx="226" fill="url(#ccctw-logo-bg)" />
+    <path d="M104 175c178-96 382-86 538 26 154 110 246 292 232 480 72-96 106-212 94-332C938 170 798 50 610 27 430 6 240 58 104 175Z" fill="url(#ccctw-logo-glow)" />
+    <path d="M114 758c130 132 308 196 504 168 142-20 250-82 326-172-82 42-182 64-300 62-194-2-358-62-530-58Z" fill="#7dd3fc" opacity="0.14" />
+    <circle
+      cx="512"
+      cy="512"
+      r="302"
+      stroke="url(#ccctw-logo-orbit)"
+      stroke-linecap="round"
+      stroke-width="86"
+      stroke-dasharray="1415 512"
+      transform="rotate(-36 512 512)"
+    />
+    <circle cx="326" cy="286" r="30" fill="#e0f2fe" />
+    <circle cx="764" cy="340" r="24" fill="#7dd3fc" />
+    <circle cx="714" cy="752" r="20" fill="#0ea5e9" />
+    <path d="M438 370c0-28 30-46 55-32l218 126c24 14 24 49 0 63L493 653c-25 14-55-4-55-32V370Z" fill="url(#ccctw-logo-play)" />
+    <rect x="330" y="684" width="48" height="102" rx="24" fill="#e0f2fe" opacity="0.78" />
+    <rect x="404" y="628" width="48" height="158" rx="24" fill="#bae6fd" opacity="0.9" />
+    <rect x="478" y="696" width="48" height="90" rx="24" fill="#7dd3fc" opacity="0.82" />
+    <rect x="552" y="650" width="48" height="136" rx="24" fill="#38bdf8" opacity="0.76" />
+    <rect x="626" y="704" width="48" height="82" rx="24" fill="#0ea5e9" opacity="0.7" />
+  </g>
+  <text x="420" y="174" fill="#f0f9ff" font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="88" font-weight="800">
+    CCCTW
+  </text>
+  <text x="770" y="174" fill="#7dd3fc" font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="88" font-weight="800">
+    Music
+  </text>
+  <text x="426" y="232" fill="#bae6fd" fill-opacity="0.82" font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="32" font-weight="600">
+    multi-source music workspace
+  </text>
+  <g fill="#0ea5e9" fill-opacity="0.15" stroke="#38bdf8" stroke-opacity="0.42" stroke-width="1.5">
+    <rect x="424" y="276" width="126" height="44" rx="22" />
+    <rect x="566" y="276" width="152" height="44" rx="22" />
+    <rect x="734" y="276" width="136" height="44" rx="22" />
+  </g>
+  <g fill="#e0f2fe" font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="21" font-weight="700">
+    <text x="466" y="305">Web</text>
+    <text x="596" y="305">Desktop</text>
+    <text x="768" y="305">Mobile</text>
+  </g>
+</svg>
