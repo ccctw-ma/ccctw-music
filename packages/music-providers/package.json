@@ -11,9 +11,11 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@ccctw-music/core": "workspace:*"
+    "@ccctw-music/core": "workspace:*",
+    "crypto-js": "^4.2.0"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "typescript": "latest"
   }
 }

@@ -6,7 +6,7 @@ import {
   type SearchResult,
   type Song,
 } from "@ccctw-music/core";
-import { createCipheriv, createDecipheriv, createHash } from "node:crypto";
+import CryptoJS from "crypto-js";
 import { getJson, toSearchParams } from "./http";
 import type { MusicProvider, PlayableUrl, ProviderContext } from "./types";
 
@@ -21,20 +21,38 @@ const NETEASE_EAPI_KEY = "e82ckenh8dichen8";
 const NETEASE_PLAYER_URL_PATH = "/api/song/enhance/player/url";
 
 function aes128EcbEncrypt(text: string) {
-  const cipher = createCipheriv("aes-128-ecb", NETEASE_EAPI_KEY, null);
-  return Buffer.concat([cipher.update(Buffer.from(text)), cipher.final()])
-    .toString("hex")
+  return CryptoJS.AES.encrypt(CryptoJS.enc.Utf8.parse(text), CryptoJS.enc.Utf8.parse(NETEASE_EAPI_KEY), {
+    mode: CryptoJS.mode.ECB,
+    padding: CryptoJS.pad.Pkcs7,
+  })
+    .ciphertext.toString(CryptoJS.enc.Hex)
     .toUpperCase();
 }
 
+function wordArrayFromArrayBuffer(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  const words: number[] = [];
+  for (let index = 0; index < bytes.length; index += 1) {
+    words[index >>> 2] |= bytes[index] << (24 - (index % 4) * 8);
+  }
+  return CryptoJS.lib.WordArray.create(words, bytes.length);
+}
+
 function aes128EcbDecrypt(buffer: ArrayBuffer) {
-  const decipher = createDecipheriv("aes-128-ecb", NETEASE_EAPI_KEY, null);
-  return Buffer.concat([decipher.update(Buffer.from(buffer)), decipher.final()]).toString("utf8");
+  const decrypted = CryptoJS.AES.decrypt(
+    { ciphertext: wordArrayFromArrayBuffer(buffer) } as CryptoJS.lib.CipherParams,
+    CryptoJS.enc.Utf8.parse(NETEASE_EAPI_KEY),
+    {
+      mode: CryptoJS.mode.ECB,
+      padding: CryptoJS.pad.Pkcs7,
+    },
+  );
+  return decrypted.toString(CryptoJS.enc.Utf8);
 }
 
 function createNeteaseEapiParams(path: string, payload: Record<string, unknown>) {
   const text = JSON.stringify(payload);
-  const digest = createHash("md5").update(`nobody${path}use${text}md5forencrypt`).digest("hex");
+  const digest = CryptoJS.MD5(`nobody${path}use${text}md5forencrypt`).toString();
   return aes128EcbEncrypt(`${path}-36cd479b6b5-${text}-36cd479b6b5-${digest}`);
 }
 
