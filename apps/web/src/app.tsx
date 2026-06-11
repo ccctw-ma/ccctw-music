@@ -149,22 +149,32 @@ export function App() {
   }
 
   async function startSong(song: Song, nextQueue = songs.length ? songs : [song]) {
-    loadQueue(nextQueue, song);
+    const fallbackQueue = [song, ...nextQueue.filter((candidate) => songKey(candidate) !== songKey(song))];
     setPlaybackError(null);
     setLoadingSongId(songKey(song));
 
     try {
-      const playable = song.playableUrl
-        ? { source: song.source, url: song.playableUrl }
-        : await apiClient.playableUrl(song.source, song.id);
+      let playableSong = song;
+      let playable = { source: song.source, url: song.playableUrl ?? null };
+      for (const candidate of fallbackQueue.slice(0, 8)) {
+        setLoadingSongId(songKey(candidate));
+        playableSong = candidate;
+        playable = candidate.playableUrl
+          ? { source: candidate.source, url: candidate.playableUrl }
+          : await apiClient.playableUrl(candidate.source, candidate.id);
+        if (playable.url) {
+          break;
+        }
+      }
 
       if (!playable.url) {
         pause();
         setAudioUrl(null);
-        setPlaybackError("当前音源暂时无法播放，换一首试试。");
+        setPlaybackError("当前搜索结果暂时没有可播放音源，换个关键词试试。");
         return;
       }
 
+      loadQueue(nextQueue, playableSong);
       setAudioUrl(playable.url);
       if (audioRef.current) {
         audioRef.current.src = playable.url;

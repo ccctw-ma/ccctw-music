@@ -91,7 +91,7 @@ describe("worker api", () => {
     });
 
     expect(cache.get).toHaveBeenCalledWith("lyric:migu:1");
-    expect(cache.get).toHaveBeenCalledWith("url:migu:1");
+    expect(cache.get).toHaveBeenCalledWith("url:v2:migu:1");
     expect(cache.put).not.toHaveBeenCalled();
   });
 

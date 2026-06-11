@@ -103,7 +103,7 @@ app.get("/v1/songs/:source/:id/url", async (context) => {
   }
 
   const providerContext = createProviderContext(context.env);
-  const cacheKey = `url:${context.req.param("source")}:${context.req.param("id")}`;
+  const cacheKey = `url:v2:${context.req.param("source")}:${context.req.param("id")}`;
   const cached = await providerContext.cache?.get<Awaited<ReturnType<typeof resolved.provider.playableUrl>>>(cacheKey);
   if (cached) {
     return context.json({ data: cached });

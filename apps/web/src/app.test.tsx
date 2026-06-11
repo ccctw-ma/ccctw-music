@@ -240,6 +240,20 @@ describe("App", () => {
     expect(usePlayerStore.getState().queue.map(songKey)).toEqual(["migu:1"]);
   });
 
+  it("skips unavailable search results and plays the next playable song", async () => {
+    apiMocks.playableUrl
+      .mockResolvedValueOnce({ source: "migu", url: null })
+      .mockResolvedValueOnce({ source: "netease", url: "https://cdn.example.com/yequ.mp3" });
+
+    renderApp();
+    await userEvent.click(await screen.findByRole("button", { name: /播放 晴天/ }));
+
+    expect(apiMocks.playableUrl).toHaveBeenCalledWith("migu", "1");
+    expect(apiMocks.playableUrl).toHaveBeenCalledWith("netease", "2");
+    expect(screen.getByTestId("audio-player")).toHaveProperty("src", "https://cdn.example.com/yequ.mp3");
+    expect(usePlayerStore.getState().current?.id).toBe("2");
+  });
+
   it("handles unavailable playable urls, audio element errors, empty lyric responses, and disabled playback", async () => {
     apiMocks.search.mockResolvedValue([
       {
@@ -257,7 +271,7 @@ describe("App", () => {
     expect(screen.getAllByRole("button", { name: /播放/ })[0]).toHaveProperty("disabled", true);
 
     await userEvent.click(await screen.findByRole("button", { name: /播放 静音曲/ }));
-    expect(await screen.findByText("当前音源暂时无法播放，换一首试试。")).not.toBeNull();
+    expect(await screen.findByText("当前搜索结果暂时没有可播放音源，换个关键词试试。")).not.toBeNull();
 
     await userEvent.click(screen.getByRole("button", { name: /播放 静音曲/ }));
     fireEvent.error(screen.getByTestId("audio-player"));

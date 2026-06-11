@@ -6,6 +6,7 @@ import {
   type SearchResult,
   type Song,
 } from "@ccctw-music/core";
+import { createCipheriv, createDecipheriv, createHash } from "node:crypto";
 import { getJson, toSearchParams } from "./http";
 import type { MusicProvider, PlayableUrl, ProviderContext } from "./types";
 
@@ -14,6 +15,65 @@ interface NeteaseSearchResponse {
     songCount?: number;
     songs?: unknown[];
   };
+}
+
+const NETEASE_EAPI_KEY = "e82ckenh8dichen8";
+const NETEASE_PLAYER_URL_PATH = "/api/song/enhance/player/url";
+
+function aes128EcbEncrypt(text: string) {
+  const cipher = createCipheriv("aes-128-ecb", NETEASE_EAPI_KEY, null);
+  return Buffer.concat([cipher.update(Buffer.from(text)), cipher.final()])
+    .toString("hex")
+    .toUpperCase();
+}
+
+function aes128EcbDecrypt(buffer: ArrayBuffer) {
+  const decipher = createDecipheriv("aes-128-ecb", NETEASE_EAPI_KEY, null);
+  return Buffer.concat([decipher.update(Buffer.from(buffer)), decipher.final()]).toString("utf8");
+}
+
+function createNeteaseEapiParams(path: string, payload: Record<string, unknown>) {
+  const text = JSON.stringify(payload);
+  const digest = createHash("md5").update(`nobody${path}use${text}md5forencrypt`).digest("hex");
+  return aes128EcbEncrypt(`${path}-36cd479b6b5-${text}-36cd479b6b5-${digest}`);
+}
+
+async function postNeteaseEapi<T>(
+  context: ProviderContext,
+  path: string,
+  payload: Record<string, unknown>,
+): Promise<T> {
+  const header = {
+    appver: "8.0.0",
+    versioncode: "140",
+    buildver: String(Math.floor(Date.now() / 1000)),
+    resolution: "1920x1080",
+    os: "android",
+    requestId: `${Date.now()}_${String(Math.floor(Math.random() * 1000)).padStart(4, "0")}`,
+    __csrf: "",
+  };
+  const params = createNeteaseEapiParams(path, { ...payload, header });
+  const response = await context.fetch(`https://interface3.music.163.com/eapi/song/enhance/player/url`, {
+    method: "POST",
+    body: toSearchParams({ params }),
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: Object.entries(header)
+        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+        .join("; "),
+      Referer: "https://music.163.com",
+      "User-Agent":
+        "Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Netease eapi failed: ${response.status} ${response.statusText}`);
+  }
+
+  const buffer = await response.arrayBuffer();
+  const decrypted = aes128EcbDecrypt(buffer);
+  return JSON.parse(decrypted) as T;
 }
 
 export const neteaseProvider: MusicProvider = {
@@ -66,9 +126,28 @@ export const neteaseProvider: MusicProvider = {
         },
       },
     );
+    const standardUrl = data.data?.[0]?.url ?? null;
+    if (standardUrl) {
+      return {
+        source: "netease",
+        url: standardUrl,
+        quality: "standard",
+      };
+    }
+
+    const eapiData = await postNeteaseEapi<{ data?: Array<{ url?: string | null }> }>(
+      context,
+      NETEASE_PLAYER_URL_PATH,
+      {
+        ids: `[${id}]`,
+        br: 999000,
+      },
+    ).catch(() => null);
+
     return {
       source: "netease",
-      url: data.data?.[0]?.url ?? null,
+      url: eapiData?.data?.[0]?.url ?? null,
+      quality: eapiData?.data?.[0]?.url ? "eapi" : undefined,
     };
   },
 

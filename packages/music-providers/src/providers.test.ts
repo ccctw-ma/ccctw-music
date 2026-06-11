@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { createCipheriv } from "node:crypto";
 import { miguProvider } from "./migu";
 import { neteaseProvider } from "./netease";
 import { qqProvider } from "./qq";
@@ -9,6 +10,15 @@ function jsonResponse(body: unknown) {
   return {
     ok: true,
     text: async () => JSON.stringify(body),
+  } as Response;
+}
+
+function encryptedNeteaseResponse(body: unknown) {
+  const cipher = createCipheriv("aes-128-ecb", "e82ckenh8dichen8", null);
+  const buffer = Buffer.concat([cipher.update(Buffer.from(JSON.stringify(body))), cipher.final()]);
+  return {
+    ok: true,
+    arrayBuffer: async () => buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
   } as Response;
 }
 
@@ -96,14 +106,34 @@ describe("music providers", () => {
     };
 
     await expect(neteaseProvider.songDetail("2", context)).resolves.toMatchObject({ id: "2", name: "Detail" });
-    await expect(neteaseProvider.playableUrl("2", context)).resolves.toEqual({ source: "netease", url: "net.mp3" });
+    await expect(neteaseProvider.playableUrl("2", context)).resolves.toEqual({
+      source: "netease",
+      url: "net.mp3",
+      quality: "standard",
+    });
     await expect(neteaseProvider.playableUrl("3", context)).resolves.toEqual({ source: "netease", url: null });
+  });
+
+  it("falls back to netease eapi when the public playable url is empty", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ data: [{ url: null }] }))
+        .mockResolvedValueOnce(encryptedNeteaseResponse({ data: [{ url: "eapi.mp3" }] })),
+    };
+
+    await expect(neteaseProvider.playableUrl("4", context)).resolves.toEqual({
+      source: "netease",
+      url: "eapi.mp3",
+      quality: "eapi",
+    });
   });
 
   it("handles empty netease responses", async () => {
     const context: ProviderContext = {
       fetch: vi
         .fn()
+        .mockResolvedValueOnce(jsonResponse({}))
         .mockResolvedValueOnce(jsonResponse({}))
         .mockResolvedValueOnce(jsonResponse({}))
         .mockResolvedValueOnce(jsonResponse({}))
