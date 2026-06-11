@@ -10,7 +10,7 @@
     "lint": "tsc --noEmit",
     "deploy": "wrangler deploy",
     "build:edgeone": "tsx build-edgeone.ts",
-    "deploy:edgeone": "tsx build-edgeone.ts && npx edgeone deploy dist-edgeone"
+    "deploy:edgeone": "tsx build-edgeone.ts && npx edgeone makers deploy dist-edgeone --env production --area global"
   },
   "dependencies": {
     "@ccctw-music/contracts": "workspace:*",

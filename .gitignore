@@ -17,6 +17,7 @@ node_modules
 /build
 dist
 apps/*/dist
+apps/*/dist-*
 .turbo
 .wrangler
 playwright-report
@@ -42,4 +43,5 @@ yarn-error.log*
 .env
 .edgeone/*
 .tef_dist/*
-  
+
+midscene_run/*

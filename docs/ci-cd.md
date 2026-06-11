@@ -77,6 +77,13 @@ pnpm github:secrets
 
 该命令会从本地 `.env.local` 读取凭证并同步到 GitHub Secrets。
 
+## 双线部署
+
+生产流量通过 DNS 分流：
+
+- 国内/中国香港：Tencent EdgeOne Pages。
+- 海外：Cloudflare Worker。
+
 ## Cloudflare 部署
 
 Worker：
@@ -94,3 +101,27 @@ pnpm deploy:server
 - GitHub Actions 中的 Web 构建使用 `PUBLIC_API_BASE_URL=https://music.ccctw.com`。
 - `apps/server/wrangler.toml` 通过 `[assets]` 挂载 `apps/web/dist`，因此不再部署 Cloudflare Pages。
 - `pnpm test:live-playback` 在 Worker 部署后对 `https://music.ccctw.com` 做真实播放拨测。
+
+## EdgeOne 部署
+
+EdgeOne Pages 项目名：`ccctw-music`。
+
+构建配置必须使用静态 SPA 配置：
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --filter @ccctw-music/web build
+```
+
+输出目录：
+
+```text
+apps/web/dist
+```
+
+注意事项：
+
+- 根目录 `edgeone.json` 的 `buildCommand`、`installCommand`、`outputDirectory` 必须是顶层字段。
+- 仓库内不要保留 `next.config.*`、根目录 `pages/` 或 npm `package-lock.json`，否则 EdgeOne 可能误加载 OpenNext 构建器并查找 `.next/required-server-files.json`。
+- EdgeOne 函数需要覆盖 `/health` 和 `/v1/*`，确保国内线路的 API 与 Cloudflare 路径一致。
+- EdgeOne 控制台还需要绑定 `MUSIC_CACHE` KV。

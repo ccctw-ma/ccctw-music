@@ -63,10 +63,13 @@ Use `pnpm quality` for the standard combined quality gate.
 ## Deployment Rules
 
 - Do not use local manual deployment as the main release path.
-- Deploy through GitHub Actions by pushing to `main`.
-- The deployment flow must remain: Quality Gate -> Build Web -> Deploy Cloudflare Worker -> Verify live playback.
+- Deploy the overseas route through GitHub Actions by pushing to `main`.
+- Deploy the Mainland China / Hong Kong route through Tencent EdgeOne Pages automation.
+- The Cloudflare deployment flow must remain: Quality Gate -> Build Web -> Deploy Cloudflare Worker -> Verify live playback.
 - Do not deploy Cloudflare Pages as the Web release path. The Web SPA is served by the Cloudflare Worker assets binding.
-- Production Web and API traffic should use the Worker custom domain `music.ccctw.com`.
+- EdgeOne must be configured as a static React SPA, not as Next.js/OpenNext. Keep `edgeone.json` build settings as top-level fields.
+- Do not reintroduce `next.config.*`, root `pages/`, or npm `package-lock.json`; these can make EdgeOne mis-detect the project as Next.js.
+- Production Web and API traffic should use `music.ccctw.com`, with DNS splitting domestic/Hong Kong traffic to EdgeOne and overseas traffic to Cloudflare.
 - Cloudflare Workers credentials must stay in GitHub Secrets.
 
 ## Documentation Rules

@@ -106,12 +106,15 @@ See `docs/quality-gates.md` for details.
 
 ## Deployment
 
-Deployment must be triggered by GitHub Actions only. Local manual deployment is not the main deployment path.
+Deployment must be triggered by automated platforms only. Local manual deployment is not the main deployment path.
 
-- Web + API: Cloudflare Worker, service name `ccctw-music-api`, custom domain `https://music.ccctw.com`.
-- Web static assets: `apps/web/dist` is published with the Worker through the `[assets]` section in `apps/server/wrangler.toml`.
-- CI flow: push to `main` -> Quality Gate -> Build Web -> Deploy Worker -> Verify live playback.
-- Cloudflare Pages is no longer deployed. Production Web and API traffic should use the `music.ccctw.com` Worker.
+- Overseas route: Cloudflare Worker, service name `ccctw-music-api`, custom domain `https://music.ccctw.com`.
+- Mainland China / Hong Kong route: Tencent EdgeOne Pages, project name `ccctw-music`, serving Web static assets and EdgeOne Functions for `/health` and `/v1/*` APIs.
+- Cloudflare Web static assets: `apps/web/dist` is published with the Worker through the `[assets]` section in `apps/server/wrangler.toml`.
+- EdgeOne Web static assets: root `edgeone.json` must use top-level `buildCommand`, `installCommand`, and `outputDirectory`; the build command is `pnpm --filter @ccctw-music/web build`, and the output directory is `apps/web/dist`.
+- Cloudflare CI flow: push to `main` -> Quality Gate -> Build Web -> Deploy Worker -> Verify live playback.
+- Do not keep `next.config.*`, root `pages/`, or npm `package-lock.json` in the repository, because they can make EdgeOne load the OpenNext builder by mistake.
+- Cloudflare Pages is no longer deployed. Dual-route production traffic is split by DNS to EdgeOne and Cloudflare.
 - See `docs/cloudflare-setup.md` for Cloudflare resources.
 - See `docs/ci-cd.md` for commit gates and automated deployment.
 
