@@ -4,10 +4,10 @@ This folder keeps the current project logo system in SVG first, then exports pla
 
 ## Concept
 
-- Deep navy base and sky-blue highlights match the Web UI theme.
-- The open orbit forms a subtle `C` for CCCTW and suggests multi-source aggregation.
-- The center play shape keeps the mark recognizable at small favicon sizes.
-- The small orbit nodes represent Migu, NetEase, QQ, and future providers.
+- Warm cyan-blue circle keeps the icon brighter than the main dark UI.
+- The single bold music note is the primary recognition element.
+- No center play arrow is used, so the mark reads as music first rather than video.
+- The transparent square canvas preserves a round app-icon silhouette across platforms.
 
 ## Assets
 

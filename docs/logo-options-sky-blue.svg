@@ -1,0 +1,349 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1180" fill="none">
+  <defs>
+    <linearGradient id="page-bg" x1="82" x2="1518" y1="36" y2="1118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f0f9ff" />
+      <stop offset="0.42" stop-color="#bae6fd" />
+      <stop offset="1" stop-color="#38bdf8" />
+    </linearGradient>
+    <radialGradient
+      id="sun-sky"
+      cx="0"
+      cy="0"
+      r="1"
+      gradientTransform="matrix(0 520 -650 0 280 120)"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="1" stop-color="#7dd3fc" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="blue-main" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#7dd3fc" />
+      <stop offset="0.42" stop-color="#38bdf8" />
+      <stop offset="1" stop-color="#0ea5e9" />
+    </linearGradient>
+    <linearGradient id="blue-deep" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#38bdf8" />
+      <stop offset="1" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="blue-soft" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#e0f2fe" />
+      <stop offset="1" stop-color="#7dd3fc" />
+    </linearGradient>
+    <filter
+      id="soft-shadow"
+      x="-24"
+      y="-24"
+      width="548"
+      height="408"
+      color-interpolation-filters="sRGB"
+      filterUnits="userSpaceOnUse"
+    >
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#0284c7" flood-opacity="0.2" />
+    </filter>
+    <style>
+      .title {
+        font-family:
+          Avenir Next,
+          Inter,
+          PingFang SC,
+          Microsoft YaHei,
+          Arial,
+          sans-serif;
+        font-weight: 850;
+      }
+      .body {
+        font-family:
+          Avenir Next,
+          Inter,
+          PingFang SC,
+          Microsoft YaHei,
+          Arial,
+          sans-serif;
+        font-weight: 650;
+      }
+      .label {
+        font-family:
+          Avenir Next,
+          Inter,
+          PingFang SC,
+          Microsoft YaHei,
+          Arial,
+          sans-serif;
+        font-weight: 800;
+      }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1180" rx="48" fill="url(#page-bg)" />
+  <rect width="1600" height="1180" rx="48" fill="url(#sun-sky)" />
+  <circle cx="1368" cy="182" r="292" fill="#e0f2fe" opacity="0.46" />
+  <circle cx="1450" cy="970" r="390" fill="#0ea5e9" opacity="0.14" />
+  <path
+    d="M0 854c182-78 390-70 620 24 238 98 470 106 700 24 112-40 206-54 280-44v322H0V854Z"
+    fill="#f0f9ff"
+    opacity="0.46"
+  />
+
+  <text x="90" y="102" class="title" fill="#075985" font-size="54">CCCTW Music Logo Options · Sky Blue</text>
+  <text x="92" y="150" class="body" fill="#0369a1" fill-opacity="0.8" font-size="24">
+    Brighter sky-blue palette, larger music symbols, and icon shapes that stay readable on Web, mobile, and desktop.
+  </text>
+
+  <g transform="translate(80 210)">
+    <g filter="url(#soft-shadow)">
+      <rect
+        width="460"
+        height="350"
+        rx="28"
+        fill="#ffffff"
+        fill-opacity="0.88"
+        stroke="#0ea5e9"
+        stroke-opacity="0.22"
+      />
+    </g>
+    <rect x="36" y="34" width="176" height="176" rx="46" fill="url(#blue-main)" />
+    <circle cx="124" cy="122" r="66" fill="#e0f2fe" fill-opacity="0.45" />
+    <path d="M147 62v88a30 30 0 1 1-17-27V86l64-13v48a30 30 0 1 1-17-27V94l-30 6Z" fill="#ffffff" />
+    <path
+      d="M67 172c38 36 101 40 147 7"
+      stroke="#075985"
+      stroke-opacity="0.24"
+      stroke-width="13"
+      stroke-linecap="round"
+    />
+    <text x="238" y="64" class="label" fill="#0284c7" font-size="22">Option 1</text>
+    <text x="238" y="104" class="title" fill="#075985" font-size="34">Sky Note</text>
+    <text x="238" y="142" class="body" fill="#0369a1" fill-opacity="0.76" font-size="18">
+      Large double-note symbol.
+    </text>
+    <text x="238" y="172" class="body" fill="#0369a1" fill-opacity="0.62" font-size="17">
+      Most direct music identity.
+    </text>
+    <text x="38" y="282" class="title" fill="#075985" font-size="32">
+      CCCTW
+      <tspan fill="#0ea5e9">Music</tspan>
+    </text>
+    <text x="40" y="314" class="body" fill="#0369a1" fill-opacity="0.68" font-size="17">
+      Bright, simple, app-icon friendly
+    </text>
+  </g>
+
+  <g transform="translate(570 210)">
+    <g filter="url(#soft-shadow)">
+      <rect
+        width="460"
+        height="350"
+        rx="28"
+        fill="#ffffff"
+        fill-opacity="0.88"
+        stroke="#0ea5e9"
+        stroke-opacity="0.22"
+      />
+    </g>
+    <rect x="36" y="34" width="176" height="176" rx="46" fill="#e0f2fe" />
+    <circle cx="124" cy="122" r="76" fill="url(#blue-main)" />
+    <circle cx="124" cy="122" r="48" fill="#f0f9ff" fill-opacity="0.34" />
+    <circle cx="124" cy="122" r="17" fill="#075985" fill-opacity="0.72" />
+    <path d="M118 84v60l50-30-50-30Z" fill="#ffffff" />
+    <path d="M67 190c36 20 82 19 118-1" stroke="#0284c7" stroke-width="10" stroke-linecap="round" opacity="0.58" />
+    <text x="238" y="64" class="label" fill="#0284c7" font-size="22">Option 2</text>
+    <text x="238" y="104" class="title" fill="#075985" font-size="34">Vinyl Play</text>
+    <text x="238" y="142" class="body" fill="#0369a1" fill-opacity="0.76" font-size="18">Disc plus play cue.</text>
+    <text x="238" y="172" class="body" fill="#0369a1" fill-opacity="0.62" font-size="17">
+      Balanced classic music feel.
+    </text>
+    <text x="38" y="282" class="title" fill="#075985" font-size="32">
+      CCCTW
+      <tspan fill="#0ea5e9">Music</tspan>
+    </text>
+    <text x="40" y="314" class="body" fill="#0369a1" fill-opacity="0.68" font-size="17">
+      Player-first visual language
+    </text>
+  </g>
+
+  <g transform="translate(1060 210)">
+    <g filter="url(#soft-shadow)">
+      <rect
+        width="460"
+        height="350"
+        rx="28"
+        fill="#ffffff"
+        fill-opacity="0.88"
+        stroke="#0ea5e9"
+        stroke-opacity="0.22"
+      />
+    </g>
+    <rect x="36" y="34" width="176" height="176" rx="46" fill="url(#blue-main)" />
+    <path d="M70 146c16-52 34-52 50 0s34 52 50 0" stroke="#ffffff" stroke-width="17" stroke-linecap="round" />
+    <path d="M71 181h108" stroke="#075985" stroke-opacity="0.26" stroke-width="12" stroke-linecap="round" />
+    <path
+      d="M91 78v43a23 23 0 1 1-13-21V87l48-10v54"
+      stroke="#ffffff"
+      stroke-width="13"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M151 78v43a23 23 0 1 1-13-21V87l42-8"
+      stroke="#ffffff"
+      stroke-width="13"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <text x="238" y="64" class="label" fill="#0284c7" font-size="22">Option 3</text>
+    <text x="238" y="104" class="title" fill="#075985" font-size="34">Wave Notes</text>
+    <text x="238" y="142" class="body" fill="#0369a1" fill-opacity="0.76" font-size="18">
+      Notes and waveform together.
+    </text>
+    <text x="238" y="172" class="body" fill="#0369a1" fill-opacity="0.62" font-size="17">
+      Modern streaming-app signal.
+    </text>
+    <text x="38" y="282" class="title" fill="#075985" font-size="32">
+      CCCTW
+      <tspan fill="#0ea5e9">Music</tspan>
+    </text>
+    <text x="40" y="314" class="body" fill="#0369a1" fill-opacity="0.68" font-size="17">
+      Search, queue, lyrics, playback
+    </text>
+  </g>
+
+  <g transform="translate(80 610)">
+    <g filter="url(#soft-shadow)">
+      <rect
+        width="460"
+        height="350"
+        rx="28"
+        fill="#ffffff"
+        fill-opacity="0.88"
+        stroke="#0ea5e9"
+        stroke-opacity="0.22"
+      />
+    </g>
+    <rect x="36" y="34" width="176" height="176" rx="46" fill="#f0f9ff" />
+    <path d="M68 130c0-45 27-78 56-78s56 33 56 78" stroke="url(#blue-deep)" stroke-width="20" stroke-linecap="round" />
+    <rect x="52" y="120" width="34" height="58" rx="17" fill="#38bdf8" />
+    <rect x="162" y="120" width="34" height="58" rx="17" fill="#38bdf8" />
+    <path
+      d="M118 92v72a24 24 0 1 1-14-22v-37l50-10"
+      stroke="#075985"
+      stroke-width="12"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <circle cx="123" cy="124" r="76" stroke="#7dd3fc" stroke-opacity="0.36" stroke-width="9" />
+    <text x="238" y="64" class="label" fill="#0284c7" font-size="22">Option 4</text>
+    <text x="238" y="104" class="title" fill="#075985" font-size="34">Headphone Note</text>
+    <text x="238" y="142" class="body" fill="#0369a1" fill-opacity="0.76" font-size="18">Headphones frame a note.</text>
+    <text x="238" y="172" class="body" fill="#0369a1" fill-opacity="0.62" font-size="17">Clearly about listening.</text>
+    <text x="38" y="282" class="title" fill="#075985" font-size="32">
+      CCCTW
+      <tspan fill="#0ea5e9">Music</tspan>
+    </text>
+    <text x="40" y="314" class="body" fill="#0369a1" fill-opacity="0.68" font-size="17">
+      Friendly consumer app direction
+    </text>
+  </g>
+
+  <g transform="translate(570 610)">
+    <g filter="url(#soft-shadow)">
+      <rect
+        width="460"
+        height="350"
+        rx="28"
+        fill="#ffffff"
+        fill-opacity="0.88"
+        stroke="#0ea5e9"
+        stroke-opacity="0.22"
+      />
+    </g>
+    <rect x="36" y="34" width="176" height="176" rx="46" fill="url(#blue-soft)" />
+    <path
+      d="M74 86h104M74 116h104M74 146h104M74 176h104"
+      stroke="#0284c7"
+      stroke-opacity="0.35"
+      stroke-width="7"
+      stroke-linecap="round"
+    />
+    <path
+      d="M131 55v87a29 29 0 1 1-16-26V72l54-11v82"
+      stroke="#075985"
+      stroke-width="13"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <circle cx="103" cy="142" r="25" fill="#0ea5e9" />
+    <circle cx="157" cy="154" r="25" fill="#38bdf8" />
+    <text x="238" y="64" class="label" fill="#0284c7" font-size="22">Option 5</text>
+    <text x="238" y="104" class="title" fill="#075985" font-size="34">Lyric Staff</text>
+    <text x="238" y="142" class="body" fill="#0369a1" fill-opacity="0.76" font-size="18">Music staff plus notes.</text>
+    <text x="238" y="172" class="body" fill="#0369a1" fill-opacity="0.62" font-size="17">
+      Good for lyrics and playback.
+    </text>
+    <text x="38" y="282" class="title" fill="#075985" font-size="32">
+      CCCTW
+      <tspan fill="#0ea5e9">Music</tspan>
+    </text>
+    <text x="40" y="314" class="body" fill="#0369a1" fill-opacity="0.68" font-size="17">
+      Highlights sing-along use case
+    </text>
+  </g>
+
+  <g transform="translate(1060 610)">
+    <g filter="url(#soft-shadow)">
+      <rect
+        width="460"
+        height="350"
+        rx="28"
+        fill="#ffffff"
+        fill-opacity="0.88"
+        stroke="#0ea5e9"
+        stroke-opacity="0.22"
+      />
+    </g>
+    <rect x="36" y="34" width="176" height="176" rx="46" fill="url(#blue-main)" />
+    <path
+      d="M76 80l48 42 48-42"
+      stroke="#ffffff"
+      stroke-width="11"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      opacity="0.94"
+    />
+    <path d="M76 166l48-44 48 44" stroke="#ffffff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="76" cy="80" r="18" fill="#f0f9ff" />
+    <circle cx="172" cy="80" r="18" fill="#f0f9ff" />
+    <circle cx="76" cy="166" r="18" fill="#e0f2fe" />
+    <circle cx="172" cy="166" r="18" fill="#e0f2fe" />
+    <circle cx="124" cy="122" r="42" fill="#075985" fill-opacity="0.78" />
+    <path
+      d="M133 89v63a24 24 0 1 1-14-22v-28l38-8"
+      stroke="#ffffff"
+      stroke-width="10"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <text x="238" y="64" class="label" fill="#0284c7" font-size="22">Option 6</text>
+    <text x="238" y="104" class="title" fill="#075985" font-size="34">Music Hub</text>
+    <text x="238" y="142" class="body" fill="#0369a1" fill-opacity="0.76" font-size="18">
+      Source nodes orbit a note.
+    </text>
+    <text x="238" y="172" class="body" fill="#0369a1" fill-opacity="0.62" font-size="17">
+      Music + aggregation together.
+    </text>
+    <text x="38" y="282" class="title" fill="#075985" font-size="32">
+      CCCTW
+      <tspan fill="#0ea5e9">Music</tspan>
+    </text>
+    <text x="40" y="314" class="body" fill="#0369a1" fill-opacity="0.68" font-size="17">
+      Multiple providers, one player
+    </text>
+  </g>
+
+  <text x="92" y="1058" class="body" fill="#075985" fill-opacity="0.78" font-size="22">
+    Recommendation for your feedback: Option 3 is the most musical + modern; Option 6 keeps the multi-source story while
+    making the note central.
+  </text>
+  <text x="92" y="1096" class="body" fill="#0284c7" fill-opacity="0.86" font-size="20">
+    Reply with a number, or combine directions, for example: "6 but use the stronger note from 1".
+  </text>
+</svg>

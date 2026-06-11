@@ -113,6 +113,7 @@ Deployment must be triggered by automated platforms only. Local manual deploymen
 - Cloudflare Web static assets: `apps/web/dist` is published with the Worker through the `[assets]` section in `apps/server/wrangler.toml`.
 - The Cloudflare Worker custom domain for `music.ccctw.com` is maintained in the dashboard. CI only updates the Worker and does not manage routes in `wrangler.toml`.
 - EdgeOne Web static assets: root `edgeone.json` must use top-level `buildCommand`, `installCommand`, and `outputDirectory`; the build command is `pnpm --filter @ccctw-music/web build`, and the output directory is `apps/web/dist`.
+- EdgeOne Functions entry points live in the repository root `functions/` directory and cover `/health`, `/v1/*`, and the legacy `/api/*` proxy paths.
 - Unified data layer: cache, database, and object storage are accessed and maintained by the Cloudflare Worker, currently using Cloudflare KV/D1/R2. EdgeOne does not bind separate KV/DB/COS resources, preventing domestic and overseas data divergence.
 - The EdgeOne API proxy target is configured by `UNIFIED_API_BASE_URL`, defaulting to `https://ccctw-music-api.1934202608.workers.dev` to avoid same-domain DNS routing loops.
 - Cloudflare CI flow: push to `main` -> Quality Gate -> Build Web -> Deploy Worker -> Verify live playback.

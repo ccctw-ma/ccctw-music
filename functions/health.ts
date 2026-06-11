@@ -1,8 +1,8 @@
 /**
- * EdgeOne Pages Function — health proxy endpoint.
+ * EdgeOne Pages Function - health proxy endpoint.
  */
-import edgeoneEntry from "../../src/entry-edgeone";
-import type { Env } from "../../src/env";
+import edgeoneEntry from "../apps/server/src/entry-edgeone";
+import type { Env } from "../apps/server/src/env";
 
 interface EdgeOneContext {
   request: Request;

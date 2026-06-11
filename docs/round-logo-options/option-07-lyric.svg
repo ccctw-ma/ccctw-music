@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="148" x2="858" y1="96" y2="928" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7dd3fc" />
+      <stop offset="0.46" stop-color="#38bdf8" />
+      <stop offset="1" stop-color="#0284c7" />
+    </linearGradient>
+  </defs>
+  <circle cx="512" cy="512" r="456" fill="url(#sky)" />
+  <path
+    d="M258 322h508M258 430h508M258 538h508M258 646h508"
+    stroke="#ffffff"
+    stroke-linecap="round"
+    stroke-width="34"
+    opacity="0.62"
+  />
+  <path
+    d="M536 214v380a116 116 0 1 1-66-104V286l210-44v258"
+    stroke="#075985"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="48"
+  />
+  <circle cx="410" cy="594" r="92" fill="#ffffff" />
+  <circle cx="656" cy="552" r="92" fill="#ffffff" />
+</svg>

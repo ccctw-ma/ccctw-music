@@ -1,108 +1,131 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" fill="none">
   <defs>
-    <linearGradient id="intro-bg" x1="124" x2="1460" y1="64" y2="876" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0d4f76" />
-      <stop offset="0.48" stop-color="#08263e" />
-      <stop offset="1" stop-color="#04111f" />
+    <linearGradient id="intro-bg" x1="80" x2="1488" y1="48" y2="850" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0f766e" />
+      <stop offset="0.46" stop-color="#0e7490" />
+      <stop offset="1" stop-color="#1d4ed8" />
     </linearGradient>
-    <radialGradient id="intro-sky" cx="0" cy="0" r="1" gradientTransform="matrix(0 400 -520 0 474 108)" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7dd3fc" stop-opacity="0.54" />
-      <stop offset="1" stop-color="#0ea5e9" stop-opacity="0" />
+    <radialGradient
+      id="intro-warm"
+      cx="0"
+      cy="0"
+      r="1"
+      gradientTransform="matrix(0 360 -460 0 304 130)"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop stop-color="#fff7ed" stop-opacity="0.34" />
+      <stop offset="1" stop-color="#fff7ed" stop-opacity="0" />
     </radialGradient>
-    <linearGradient id="intro-mark-bg" x1="116" x2="872" y1="78" y2="938" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0ea5e9" />
-      <stop offset="0.42" stop-color="#075985" />
-      <stop offset="1" stop-color="#04111f" />
+    <linearGradient id="mark-bg" x1="154" x2="462" y1="134" y2="506" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8be7ff" />
+      <stop offset="0.46" stop-color="#38bdf8" />
+      <stop offset="1" stop-color="#2563eb" />
     </linearGradient>
-    <linearGradient id="intro-orbit" x1="216" x2="818" y1="194" y2="826" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#f0f9ff" />
-      <stop offset="0.46" stop-color="#7dd3fc" />
-      <stop offset="1" stop-color="#0ea5e9" />
+    <linearGradient id="mark-note" x1="276" x2="422" y1="182" y2="444" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#164e63" />
+      <stop offset="1" stop-color="#082f49" />
     </linearGradient>
-    <linearGradient id="intro-play" x1="423" x2="666" y1="354" y2="664" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#ffffff" />
-      <stop offset="1" stop-color="#bae6fd" />
-    </linearGradient>
-    <filter id="intro-shadow" x="-20" y="-20" width="1640" height="940" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="38" stdDeviation="40" flood-color="#020617" flood-opacity="0.38" />
+    <filter
+      id="panel-shadow"
+      x="48"
+      y="56"
+      width="1504"
+      height="792"
+      color-interpolation-filters="sRGB"
+      filterUnits="userSpaceOnUse"
+    >
+      <feDropShadow dx="0" dy="38" stdDeviation="40" flood-color="#020617" flood-opacity="0.28" />
     </filter>
   </defs>
   <rect width="1600" height="900" rx="48" fill="url(#intro-bg)" />
-  <rect width="1600" height="900" rx="48" fill="url(#intro-sky)" />
-  <circle cx="1318" cy="172" r="286" fill="#0ea5e9" opacity="0.14" />
-  <circle cx="1436" cy="780" r="332" fill="#7dd3fc" opacity="0.08" />
-  <g filter="url(#intro-shadow)">
-    <rect x="96" y="96" width="1408" height="708" rx="48" fill="#061526" fill-opacity="0.58" stroke="#bae6fd" stroke-opacity="0.13" />
-  </g>
-  <g transform="translate(164 170) scale(0.3046875)">
-    <rect width="1024" height="1024" rx="226" fill="url(#intro-mark-bg)" />
-    <path d="M104 175c178-96 382-86 538 26 154 110 246 292 232 480 72-96 106-212 94-332C938 170 798 50 610 27 430 6 240 58 104 175Z" fill="#e0f2fe" opacity="0.18" />
-    <path d="M114 758c130 132 308 196 504 168 142-20 250-82 326-172-82 42-182 64-300 62-194-2-358-62-530-58Z" fill="#7dd3fc" opacity="0.14" />
-    <circle
-      cx="512"
-      cy="512"
-      r="302"
-      stroke="url(#intro-orbit)"
-      stroke-linecap="round"
-      stroke-width="86"
-      stroke-dasharray="1415 512"
-      transform="rotate(-36 512 512)"
+  <rect width="1600" height="900" rx="48" fill="url(#intro-warm)" />
+  <circle cx="1340" cy="170" r="270" fill="#67e8f9" opacity="0.12" />
+  <circle cx="1440" cy="750" r="330" fill="#fff7ed" opacity="0.08" />
+  <g filter="url(#panel-shadow)">
+    <rect
+      x="96"
+      y="96"
+      width="1408"
+      height="708"
+      rx="48"
+      fill="#061526"
+      fill-opacity="0.5"
+      stroke="#e0f2fe"
+      stroke-opacity="0.12"
     />
-    <circle cx="326" cy="286" r="30" fill="#e0f2fe" />
-    <circle cx="764" cy="340" r="24" fill="#7dd3fc" />
-    <circle cx="714" cy="752" r="20" fill="#0ea5e9" />
-    <path d="M438 370c0-28 30-46 55-32l218 126c24 14 24 49 0 63L493 653c-25 14-55-4-55-32V370Z" fill="url(#intro-play)" />
-    <rect x="330" y="684" width="48" height="102" rx="24" fill="#e0f2fe" opacity="0.78" />
-    <rect x="404" y="628" width="48" height="158" rx="24" fill="#bae6fd" opacity="0.9" />
-    <rect x="478" y="696" width="48" height="90" rx="24" fill="#7dd3fc" opacity="0.82" />
-    <rect x="552" y="650" width="48" height="136" rx="24" fill="#38bdf8" opacity="0.76" />
-    <rect x="626" y="704" width="48" height="82" rx="24" fill="#0ea5e9" opacity="0.7" />
   </g>
-  <text x="546" y="274" fill="#f0f9ff" font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="112" font-weight="800">
+  <circle cx="320" cy="320" r="184" fill="url(#mark-bg)" />
+  <circle cx="320" cy="320" r="184" fill="#fff7ed" opacity="0.12" />
+  <path d="M350 210v158a54 54 0 1 1-31-49v-76l90-18v42l-59 12Z" fill="url(#mark-note)" />
+  <text
+    x="560"
+    y="276"
+    fill="#f0f9ff"
+    font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif"
+    font-size="112"
+    font-weight="800"
+  >
     CCCTW Music
   </text>
-  <text x="552" y="338" fill="#bae6fd" fill-opacity="0.82" font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="34" font-weight="600">
-    Web / Desktop / Mobile music workspace
+  <text
+    x="566"
+    y="342"
+    fill="#cffafe"
+    fill-opacity="0.84"
+    font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif"
+    font-size="34"
+    font-weight="600"
+  >
+    Web / Desktop / Mobile music player
   </text>
-  <g transform="translate(548 410)">
-    <rect width="262" height="178" rx="30" fill="#08263e" stroke="#7dd3fc" stroke-opacity="0.2" />
-    <rect x="28" y="30" width="206" height="116" rx="18" fill="#0b2238" />
-    <rect x="46" y="52" width="72" height="72" rx="20" fill="#0ea5e9" fill-opacity="0.28" />
-    <path d="M78 76v40l34-20-34-20Z" fill="#f0f9ff" />
-    <rect x="134" y="60" width="72" height="10" rx="5" fill="#e0f2fe" opacity="0.72" />
-    <rect x="134" y="84" width="48" height="8" rx="4" fill="#7dd3fc" opacity="0.58" />
-    <rect x="46" y="130" width="160" height="8" rx="4" fill="#38bdf8" opacity="0.52" />
-    <text x="80" y="224" fill="#e0f2fe" font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="28" font-weight="800">Web</text>
+  <g transform="translate(560 430)">
+    <rect width="250" height="158" rx="30" fill="#082f49" fill-opacity="0.7" stroke="#67e8f9" stroke-opacity="0.2" />
+    <circle cx="82" cy="78" r="44" fill="#38bdf8" />
+    <path d="M96 50v58a20 20 0 1 1-11-18V62l38-8v18l-27 5Z" fill="#082f49" />
+    <rect x="142" y="58" width="70" height="10" rx="5" fill="#e0f2fe" opacity="0.72" />
+    <rect x="142" y="88" width="48" height="8" rx="4" fill="#67e8f9" opacity="0.72" />
+    <text
+      x="88"
+      y="210"
+      fill="#f0f9ff"
+      font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif"
+      font-size="28"
+      font-weight="800"
+    >
+      Web
+    </text>
   </g>
-  <g transform="translate(872 380)">
-    <rect width="190" height="286" rx="40" fill="#08263e" stroke="#7dd3fc" stroke-opacity="0.2" />
-    <rect x="22" y="30" width="146" height="220" rx="28" fill="#0b2238" />
-    <circle cx="94" cy="104" r="42" fill="#0ea5e9" fill-opacity="0.28" />
-    <path d="M86 82v44l38-22-38-22Z" fill="#f0f9ff" />
-    <rect x="48" y="170" width="92" height="9" rx="4.5" fill="#e0f2fe" opacity="0.72" />
-    <rect x="62" y="194" width="64" height="8" rx="4" fill="#7dd3fc" opacity="0.58" />
-    <text x="48" y="332" fill="#e0f2fe" font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="28" font-weight="800">Mobile</text>
+  <g transform="translate(884 400)">
+    <rect width="180" height="270" rx="40" fill="#082f49" fill-opacity="0.7" stroke="#67e8f9" stroke-opacity="0.2" />
+    <circle cx="90" cy="102" r="46" fill="#38bdf8" />
+    <path d="M103 74v58a20 20 0 1 1-11-18V86l38-8v18l-27 5Z" fill="#082f49" />
+    <rect x="50" y="176" width="82" height="9" rx="4.5" fill="#e0f2fe" opacity="0.72" />
+    <text
+      x="44"
+      y="316"
+      fill="#f0f9ff"
+      font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif"
+      font-size="28"
+      font-weight="800"
+    >
+      Mobile
+    </text>
   </g>
-  <g transform="translate(1128 410)">
-    <rect width="262" height="178" rx="30" fill="#08263e" stroke="#7dd3fc" stroke-opacity="0.2" />
-    <rect x="34" y="30" width="194" height="110" rx="18" fill="#0b2238" />
-    <rect x="92" y="146" width="78" height="14" rx="7" fill="#38bdf8" opacity="0.42" />
-    <circle cx="80" cy="84" r="34" fill="#0ea5e9" fill-opacity="0.28" />
-    <path d="M73 65v38l32-19-32-19Z" fill="#f0f9ff" />
-    <rect x="130" y="70" width="66" height="9" rx="4.5" fill="#e0f2fe" opacity="0.72" />
-    <rect x="130" y="94" width="46" height="8" rx="4" fill="#7dd3fc" opacity="0.58" />
-    <text x="70" y="224" fill="#e0f2fe" font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="28" font-weight="800">Desktop</text>
-  </g>
-  <g fill="#08263e" stroke="#7dd3fc" stroke-opacity="0.24" stroke-width="1.4">
-    <rect x="548" y="702" width="154" height="48" rx="24" />
-    <rect x="720" y="702" width="184" height="48" rx="24" />
-    <rect x="922" y="702" width="122" height="48" rx="24" />
-    <rect x="1062" y="702" width="244" height="48" rx="24" />
-  </g>
-  <g fill="#bae6fd" font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="21" font-weight="700">
-    <text x="590" y="733">Migu</text>
-    <text x="766" y="733">NetEase</text>
-    <text x="965" y="733">QQ</text>
-    <text x="1112" y="733">Cloudflare Worker</text>
+  <g transform="translate(1130 430)">
+    <rect width="250" height="158" rx="30" fill="#082f49" fill-opacity="0.7" stroke="#67e8f9" stroke-opacity="0.2" />
+    <circle cx="82" cy="78" r="44" fill="#38bdf8" />
+    <path d="M96 50v58a20 20 0 1 1-11-18V62l38-8v18l-27 5Z" fill="#082f49" />
+    <rect x="142" y="58" width="70" height="10" rx="5" fill="#e0f2fe" opacity="0.72" />
+    <rect x="142" y="88" width="48" height="8" rx="4" fill="#67e8f9" opacity="0.72" />
+    <text
+      x="66"
+      y="210"
+      fill="#f0f9ff"
+      font-family="Avenir Next, Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif"
+      font-size="28"
+      font-weight="800"
+    >
+      Desktop
+    </text>
   </g>
 </svg>

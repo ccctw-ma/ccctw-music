@@ -125,6 +125,6 @@ apps/web/dist
 
 - 根目录 `edgeone.json` 的 `buildCommand`、`installCommand`、`outputDirectory` 必须是顶层字段。
 - 仓库内不要保留 `next.config.*`、根目录 `pages/` 或 npm `package-lock.json`，否则 EdgeOne 可能误加载 OpenNext 构建器并查找 `.next/required-server-files.json`。
-- EdgeOne 函数需要覆盖 `/health` 和 `/v1/*`，并代理到统一 Cloudflare Worker API，确保国内线路的 API 路径与海外一致。
+- EdgeOne 函数入口放在仓库根目录 `functions/`，需要覆盖 `/health` 和 `/v1/*`，并代理到统一 Cloudflare Worker API，确保国内线路的 API 路径与海外一致。
 - EdgeOne 需要设置 `UNIFIED_API_BASE_URL=https://ccctw-music-api.1934202608.workers.dev`。
 - EdgeOne 不需要绑定 `MUSIC_CACHE` KV、数据库或对象存储；这些资源统一由 Cloudflare Worker 访问，避免双后端数据分裂。
