@@ -1,0 +1,12 @@
+{
+  "build": {
+    "installCommand": "pnpm install --frozen-lockfile",
+    "buildCommand": "pnpm --filter @ccctw-music/web build",
+    "outputDirectory": "apps/web/dist"
+  },
+  "env": {
+    "APP_ENV": "production",
+    "RUNTIME": "edgeone",
+    "PUBLIC_API_BASE_URL": "https://music.ccctw.com"
+  }
+}

@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 
 const repo = process.env.GITHUB_REPOSITORY_NAME ?? "ccctw-ma/ccctw-music";
-const requiredSecrets = ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"];
+const requiredSecrets = ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID", "EDGEONE_SECRET_ID", "EDGEONE_SECRET_KEY"];
 
 function parseEnv(content) {
   return Object.fromEntries(

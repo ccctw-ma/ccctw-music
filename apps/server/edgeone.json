@@ -1,0 +1,13 @@
+{
+  "name": "ccctw-music-api",
+  "env": {
+    "APP_ENV": "production",
+    "RUNTIME": "edgeone"
+  },
+  "kv": [
+    {
+      "binding": "MUSIC_CACHE",
+      "id": "<replace-with-edgeone-kv-namespace-id>"
+    }
+  ]
+}

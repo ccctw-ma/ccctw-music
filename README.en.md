@@ -16,7 +16,7 @@ CCCTW Music is a multi-platform music application for Web, desktop, iOS, Android
 ## Architecture
 
 - `apps/web`: React + Rsbuild/Rspack + TypeScript Web SPA for search, playback, lyrics, queue, favorites, and responsive UI.
-- `apps/server`: Cloudflare Workers + Hono API for search, song details, lyrics, and playable URLs.
+- `apps/server`: Cloudflare Workers + Hono API for search, song details, lyrics, and playable URLs. It also serves `apps/web/dist` through Worker static assets.
 - `apps/desktop`: Tauri shell that reuses `apps/web/dist`.
 - `apps/mobile`: Capacitor shell that reuses `apps/web/dist`.
 - `packages/core`: Music domain models, formatting, lyric parsing, and player queue logic.
@@ -29,12 +29,12 @@ CCCTW Music is a multi-platform music application for Web, desktop, iOS, Android
 
 ## Music Data Flow
 
-The frontend does not call third-party music services directly. It calls the Worker API, which normalizes provider data into shared domain types.
+Web search first calls browser-accessible third-party music APIs directly. Sources that fail in the browser or return empty results fall back to the Worker API, which normalizes provider data into shared domain types.
 
 ```text
 Web UI
-  -> @ccctw-music/api-client
-  -> Cloudflare Worker / Hono API
+  -> browser-first direct provider search
+  -> Cloudflare Worker / Hono API fallback
   -> @ccctw-music/music-providers
   -> migu / netease / qq upstream APIs
 ```
@@ -108,9 +108,10 @@ See `docs/quality-gates.md` for details.
 
 Deployment must be triggered by GitHub Actions only. Local manual deployment is not the main deployment path.
 
-- Web: Cloudflare Pages, output directory `apps/web/dist`.
-- API: Cloudflare Workers, service name `ccctw-music-api`.
-- CI flow: push to `main` -> Quality Gate -> Deploy Worker -> Verify live playback -> Deploy Pages.
+- Web + API: Cloudflare Worker, service name `ccctw-music-api`, custom domain `https://music.ccctw.com`.
+- Web static assets: `apps/web/dist` is published with the Worker through the `[assets]` section in `apps/server/wrangler.toml`.
+- CI flow: push to `main` -> Quality Gate -> Build Web -> Deploy Worker -> Verify live playback.
+- Cloudflare Pages is no longer deployed. Production Web and API traffic should use the `music.ccctw.com` Worker.
 - See `docs/cloudflare-setup.md` for Cloudflare resources.
 - See `docs/ci-cd.md` for commit gates and automated deployment.
 

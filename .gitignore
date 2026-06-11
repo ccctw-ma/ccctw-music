@@ -37,3 +37,9 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# Tencent Cloud EdgeOne
+.env
+.edgeone/*
+.tef_dist/*
+  

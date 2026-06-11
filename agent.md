@@ -64,8 +64,10 @@ Use `pnpm quality` for the standard combined quality gate.
 
 - Do not use local manual deployment as the main release path.
 - Deploy through GitHub Actions by pushing to `main`.
-- The deployment flow must remain: Quality Gate -> Deploy Worker -> Verify live playback -> Deploy Pages.
-- Cloudflare Workers and Pages credentials must stay in GitHub Secrets.
+- The deployment flow must remain: Quality Gate -> Build Web -> Deploy Cloudflare Worker -> Verify live playback.
+- Do not deploy Cloudflare Pages as the Web release path. The Web SPA is served by the Cloudflare Worker assets binding.
+- Production Web and API traffic should use the Worker custom domain `music.ccctw.com`.
+- Cloudflare Workers credentials must stay in GitHub Secrets.
 
 ## Documentation Rules
 

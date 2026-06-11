@@ -59,8 +59,6 @@ importers:
         specifier: latest
         version: 2.11.2
 
-  apps/harmony: {}
-
   apps/mobile:
     dependencies:
       "@capacitor/core":
@@ -89,6 +87,9 @@ importers:
       "@cloudflare/workers-types":
         specifier: latest
         version: 4.20260610.1
+      esbuild:
+        specifier: latest
+        version: 0.28.0
       typescript:
         specifier: latest
         version: 6.0.3

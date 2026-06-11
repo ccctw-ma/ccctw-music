@@ -60,7 +60,7 @@ Workflow 文件：
 执行阶段：
 
 - `quality`：安装依赖、安装 Playwright Chromium、执行 `pnpm quality`。
-- `deploy`：质量门禁通过后部署 Cloudflare Worker 和 Cloudflare Pages。
+- `deploy`：质量门禁通过后构建 Web，并将 Web 静态资源和 API 一起部署到 Cloudflare Worker。
 
 ## GitHub Secrets
 
@@ -85,14 +85,12 @@ Worker：
 pnpm deploy:server
 ```
 
-Pages：
-
-```bash
-PUBLIC_API_BASE_URL=https://ccctw-music-api.1934202608.workers.dev pnpm deploy:web
-```
-
 当前线上地址：
 
-- Worker: `https://ccctw-music-api.1934202608.workers.dev`
-- Pages preview: `https://a535b68e.ccctw-music.pages.dev`
-- Pages project subdomain: `ccctw-music.pages.dev`
+- Web + API Worker: `https://music.ccctw.com`
+
+说明：
+
+- GitHub Actions 中的 Web 构建使用 `PUBLIC_API_BASE_URL=https://music.ccctw.com`。
+- `apps/server/wrangler.toml` 通过 `[assets]` 挂载 `apps/web/dist`，因此不再部署 Cloudflare Pages。
+- `pnpm test:live-playback` 在 Worker 部署后对 `https://music.ccctw.com` 做真实播放拨测。

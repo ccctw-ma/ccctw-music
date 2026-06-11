@@ -6,7 +6,7 @@
 
 ```bash
 export CLOUDFLARE_ACCOUNT_ID=<your-account-id>
-export CLOUDFLARE_API_TOKEN=<token-with-pages-workers-kv-d1-r2-permissions>
+export CLOUDFLARE_API_TOKEN=<token-with-workers-kv-d1-r2-permissions>
 pnpm cloudflare:provision
 ```
 
@@ -14,25 +14,20 @@ pnpm cloudflare:provision
 
 ```bash
 CLOUDFLARE_ACCOUNT_ID=<your-account-id>
-CLOUDFLARE_API_TOKEN=<token-with-pages-workers-kv-d1-r2-permissions>
+CLOUDFLARE_API_TOKEN=<token-with-workers-kv-d1-r2-permissions>
 ```
 
-脚本会自动创建 Pages、KV、D1、R2，并把 KV / D1 ID 回写到 `apps/server/wrangler.toml`。
+脚本会自动创建 KV、D1、R2，并把 KV / D1 ID 回写到 `apps/server/wrangler.toml`。Web 页面后续不再部署到 Cloudflare Pages，而是随 Worker 静态资源一起发布。
 
-1. Cloudflare Pages 项目
-
-- 项目名：`ccctw-music`
-- 构建命令：`pnpm --filter @ccctw-music/web build`
-- 输出目录：`apps/web/dist`
-- 环境变量：`PUBLIC_API_BASE_URL=https://<你的-worker域名>`
-
-2. Cloudflare Workers 项目
+1. Cloudflare Workers 项目
 
 - Worker 名：`ccctw-music-api`
 - 配置文件：`apps/server/wrangler.toml`
 - 部署命令：`pnpm deploy:server`
+- 自定义域名：`music.ccctw.com`
+- 静态资源目录：`apps/web/dist`，由 `wrangler.toml` 的 `[assets]` 配置挂载。
 
-3. KV Namespace
+2. KV Namespace
 
 - 用途：缓存搜索结果、歌词、歌曲详情。
 - Binding 名：`MUSIC_CACHE`
@@ -45,7 +40,7 @@ pnpm --filter @ccctw-music/server exec wrangler kv namespace create MUSIC_CACHE 
 
 创建后把返回的 `id` 和 `preview_id` 填入 `apps/server/wrangler.toml`。
 
-4. D1 Database
+3. D1 Database
 
 - 用途：用户、收藏、歌单、播放历史。
 - Binding 名：`DB`
@@ -67,8 +62,7 @@ pnpm --filter @ccctw-music/server exec wrangler d1 create ccctw-music
 
 2. 自定义域名
 
-- Web：`music.<your-domain>`
-- API：`api.music.<your-domain>`
+- Web + API：`music.ccctw.com`
 
 3. Turnstile
 
@@ -82,5 +76,4 @@ pnpm --filter @ccctw-music/server exec wrangler d1 create ccctw-music
 - Cloudflare Account 权限。
 - KV 的 `id` 与 `preview_id`。
 - D1 的 `database_id`。
-- Pages 项目的正式域名或预览域名。
-- Worker 的正式域名。
+- Worker 的正式域名 `music.ccctw.com`。

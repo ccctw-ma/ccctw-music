@@ -8,8 +8,7 @@
     "build": "rsbuild build",
     "preview": "rsbuild preview",
     "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit",
-    "deploy": "rsbuild build && wrangler pages deploy dist --project-name ccctw-music --commit-dirty=true"
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@ccctw-music/api-client": "workspace:*",

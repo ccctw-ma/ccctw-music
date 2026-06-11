@@ -38,7 +38,7 @@ app.get("/health", (context) =>
   context.json({
     ok: true,
     service: "ccctw-music-api",
-    runtime: "cloudflare-workers",
+    runtime: context.env?.RUNTIME ?? "cloudflare-workers",
   }),
 );
 

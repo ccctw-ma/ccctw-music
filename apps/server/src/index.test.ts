@@ -25,7 +25,7 @@ vi.mock("@ccctw-music/music-providers", async (importOriginal: () => Promise<obj
 });
 
 const { default: app } = await import("./index");
-const env = { APP_ENV: "test" };
+const env = { APP_ENV: "test", RUNTIME: "cloudflare-workers" as const };
 
 describe("worker api", () => {
   it("returns health status", async () => {
@@ -81,7 +81,7 @@ describe("worker api", () => {
         .mockResolvedValueOnce(JSON.stringify({ source: "migu", url: "cached.mp3" })),
       put: vi.fn(),
     };
-    const cacheEnv = { APP_ENV: "test", MUSIC_CACHE: cache };
+    const cacheEnv = { APP_ENV: "test", RUNTIME: "cloudflare-workers" as const, MUSIC_CACHE: cache };
 
     await expect((await app.request("/v1/songs/migu/1/lyric", {}, cacheEnv)).json()).resolves.toMatchObject({
       data: { type: 1 },
@@ -103,7 +103,13 @@ describe("worker api", () => {
     };
 
     await expect(
-      (await app.request("/v1/songs/migu/empty/url", {}, { APP_ENV: "test", MUSIC_CACHE: cache })).json(),
+      (
+        await app.request(
+          "/v1/songs/migu/empty/url",
+          {},
+          { APP_ENV: "test", RUNTIME: "cloudflare-workers" as const, MUSIC_CACHE: cache },
+        )
+      ).json(),
     ).resolves.toEqual({
       data: { source: "migu", url: null },
     });

@@ -2,9 +2,17 @@ name = "ccctw-music-api"
 main = "src/index.ts"
 compatibility_date = "2026-06-10"
 compatibility_flags = ["nodejs_compat"]
+routes = [
+  { pattern = "music.ccctw.com", custom_domain = true }
+]
+
+[assets]
+directory = "../web/dist"
+not_found_handling = "single-page-application"
 
 [vars]
 APP_ENV = "development"
+RUNTIME = "cloudflare-workers"
 
 [[kv_namespaces]]
 binding = "MUSIC_CACHE"

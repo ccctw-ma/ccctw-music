@@ -24,8 +24,9 @@
     "github:secrets": "tsx scripts/sync-github-secrets.ts",
     "dev:web": "pnpm --filter @ccctw-music/web dev",
     "dev:server": "pnpm --filter @ccctw-music/server dev",
-    "deploy:web": "pnpm --filter @ccctw-music/web run deploy",
-    "deploy:server": "pnpm --filter @ccctw-music/server run deploy"
+    "deploy:server": "pnpm --filter @ccctw-music/server run deploy",
+    "deploy:server:edgeone": "pnpm --filter @ccctw-music/server run deploy:edgeone",
+    "edgeone:provision": "tsx scripts/provision-edgeone.ts"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,md,css,yml,yaml}": "prettier --write"
