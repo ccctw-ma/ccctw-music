@@ -1,23 +1,23 @@
 :root {
-  color: #f8f5f8;
-  background: #130f18;
+  color: #eef9ff;
+  background: #061526;
   color-scheme: dark;
-  --netease-red: #ff3f55;
-  --netease-red-strong: #ff2442;
-  --wine-950: #120d16;
-  --wine-900: #18101d;
-  --wine-850: #211522;
-  --wine-800: #2b1a2d;
-  --wine-700: #3a223a;
-  --wine-600: #583151;
-  --surface: rgba(31, 20, 34, 0.86);
+  --netease-red: #0ea5e9;
+  --netease-red-strong: #0284c7;
+  --wine-950: #04111f;
+  --wine-900: #061526;
+  --wine-850: #071a2d;
+  --wine-800: #0b2238;
+  --wine-700: #123b5a;
+  --wine-600: #155e89;
+  --surface: rgba(8, 25, 43, 0.86);
   --surface-soft: rgba(255, 255, 255, 0.06);
   --surface-hover: rgba(255, 255, 255, 0.1);
   --line: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.14);
-  --text: #f7f2f7;
-  --muted: rgba(247, 242, 247, 0.68);
-  --quiet: rgba(247, 242, 247, 0.42);
+  --text: #f0f9ff;
+  --muted: rgba(224, 242, 254, 0.72);
+  --quiet: rgba(186, 230, 253, 0.46);
   --sky-300: #7dd3fc;
   --shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
   font-family: "Avenir Next", Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
@@ -58,7 +58,7 @@ button {
 button:focus-visible,
 input:focus-visible,
 a:focus-visible {
-  outline: 2px solid rgba(255, 63, 85, 0.7);
+  outline: 2px solid rgba(14, 165, 233, 0.72);
   outline-offset: 3px;
 }
 
@@ -94,9 +94,9 @@ p {
   padding-bottom: 92px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 22% 0%, rgba(255, 63, 85, 0.18), transparent 34rem),
-    radial-gradient(circle at 80% 0%, rgba(125, 211, 252, 0.08), transparent 30rem),
-    linear-gradient(180deg, #5b2d52 0%, #261724 32%, #111017 100%);
+    radial-gradient(circle at 18% 0%, rgba(14, 165, 233, 0.26), transparent 34rem),
+    radial-gradient(circle at 84% 0%, rgba(125, 211, 252, 0.16), transparent 30rem),
+    linear-gradient(180deg, #0d4f76 0%, #08263e 32%, #04111f 100%);
   background-color: #f0f9ff;
 }
 
@@ -123,7 +123,7 @@ p {
   left: 18%;
   width: 420px;
   height: 420px;
-  background: rgba(255, 63, 85, 0.7);
+  background: rgba(14, 165, 233, 0.72);
 }
 
 .aurora-b {
@@ -131,7 +131,7 @@ p {
   bottom: 4%;
   width: 360px;
   height: 360px;
-  background: rgba(125, 211, 252, 0.35);
+  background: rgba(125, 211, 252, 0.42);
 }
 
 .side-rail,
@@ -162,7 +162,7 @@ p {
   padding: 24px 16px 18px;
   border-width: 0 1px 0 0;
   border-radius: 0;
-  background: rgba(23, 17, 25, 0.72);
+  background: rgba(5, 18, 32, 0.76);
   box-shadow: none;
 }
 
@@ -184,7 +184,7 @@ p {
   border-radius: 50%;
   color: #fff;
   background: var(--netease-red);
-  box-shadow: 0 10px 24px rgba(255, 63, 85, 0.35);
+  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.34);
 }
 
 .rail-nav {
@@ -214,7 +214,7 @@ p {
 .sidebar-pill.active,
 .playlist-shortcut:hover {
   color: #fff;
-  background: rgba(255, 63, 85, 0.14);
+  background: rgba(14, 165, 233, 0.16);
 }
 
 .rail-nav a.active,
@@ -259,7 +259,7 @@ p {
   overflow: auto;
   border: 0;
   border-radius: 0;
-  background: rgba(18, 16, 23, 0.55);
+  background: rgba(4, 17, 31, 0.56);
   box-shadow: none;
 }
 
@@ -273,7 +273,7 @@ p {
   align-items: center;
   min-height: 68px;
   padding: 14px 28px 10px;
-  background: rgba(65, 35, 59, 0.72);
+  background: rgba(8, 40, 66, 0.76);
   backdrop-filter: blur(20px);
 }
 
@@ -391,7 +391,7 @@ p {
 .song-row img,
 .playlist-shortcut img {
   object-fit: cover;
-  background: linear-gradient(145deg, #421f3b, #ff3f55);
+  background: linear-gradient(145deg, #075985, #38bdf8);
 }
 
 .cover-orbit img {
@@ -493,7 +493,7 @@ p {
   border-radius: 999px;
   color: #fff;
   background: var(--netease-red);
-  box-shadow: 0 12px 26px rgba(255, 63, 85, 0.34);
+  box-shadow: 0 12px 26px rgba(14, 165, 233, 0.34);
   cursor: pointer;
 }
 
@@ -575,7 +575,7 @@ p {
 .result-panel {
   overflow: hidden;
   border-radius: 14px;
-  background: rgba(20, 17, 24, 0.6);
+  background: rgba(5, 18, 32, 0.62);
   box-shadow: none;
 }
 
@@ -741,7 +741,7 @@ p {
 .lyrics-panel {
   overflow: hidden;
   border-radius: 14px;
-  background: rgba(20, 17, 24, 0.58);
+  background: rgba(5, 18, 32, 0.62);
   box-shadow: none;
 }
 
@@ -785,7 +785,7 @@ p {
 
 .pulse-dot.active {
   background: var(--netease-red);
-  box-shadow: 0 0 24px rgba(255, 63, 85, 0.7);
+  box-shadow: 0 0 24px rgba(14, 165, 233, 0.72);
 }
 
 .progress-shell {
@@ -881,7 +881,7 @@ p {
 .queue-list li.active button:first-child,
 .lyric-list li.active {
   color: #fff;
-  background: rgba(255, 63, 85, 0.18);
+  background: rgba(14, 165, 233, 0.18);
 }
 
 .queue-list strong,
@@ -916,7 +916,7 @@ p {
   padding: 12px 24px;
   border-width: 1px 0 0;
   border-radius: 0;
-  background: rgba(17, 16, 22, 0.96);
+  background: rgba(4, 17, 31, 0.96);
   box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.38);
 }
 

@@ -1,6 +1,10 @@
 const apiBaseUrl = process.env.PUBLIC_API_BASE_URL ?? "https://ccctw-music-api.1934202608.workers.dev";
-const keyword = process.env.MUSIC_VERIFY_KEYWORD ?? "晴天";
+const keywords = (process.env.MUSIC_VERIFY_KEYWORD ?? "晴天,偏爱,海阔天空")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
 const sources = process.env.MUSIC_VERIFY_SOURCES ?? "migu,netease,qq";
+const REQUEST_TIMEOUT_MS = 15000;
 
 async function readJson(response) {
   const text = await response.text();
@@ -12,7 +16,9 @@ async function readJson(response) {
 }
 
 async function fetchJson(url) {
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
   return {
     response,
     body: await readJson(response),
@@ -21,6 +27,7 @@ async function fetchJson(url) {
 
 async function checkAudioUrl(url) {
   const response = await fetch(url, {
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     headers: {
       Range: "bytes=0-63",
       "User-Agent": "Mozilla/5.0 CCCTW-Music-Live-Playback-Check",
@@ -36,63 +43,82 @@ async function checkAudioUrl(url) {
   };
 }
 
-const searchUrl = new URL("/v1/search", apiBaseUrl);
-searchUrl.searchParams.set("keyword", keyword);
-searchUrl.searchParams.set("page", "1");
-searchUrl.searchParams.set("pageSize", "5");
-searchUrl.searchParams.set("sources", sources);
-
-const { response: searchResponse, body: searchBody } = await fetchJson(searchUrl);
-console.log(
-  JSON.stringify(
-    {
-      step: "search",
-      status: searchResponse.status,
-      keyword,
-      sources,
-      groups: searchBody.data?.map((group) => ({
-        source: group.source,
-        total: group.total,
-        songs: group.songs?.length ?? 0,
-      })),
-    },
-    null,
-    2,
-  ),
-);
-
 let playableCount = 0;
 let testedCount = 0;
 
-for (const group of searchBody.data ?? []) {
-  for (const song of (group.songs ?? []).slice(0, 3)) {
-    testedCount += 1;
-    const urlEndpoint = new URL(
-      `/v1/songs/${encodeURIComponent(song.source)}/${encodeURIComponent(song.id)}/url`,
-      apiBaseUrl,
-    );
-    const { response, body } = await fetchJson(urlEndpoint);
-    const playableUrl = body.data?.url ?? null;
-    const audio = playableUrl ? await checkAudioUrl(playableUrl).catch((error) => ({ error: error.message })) : null;
-    if (audio?.ok) {
-      playableCount += 1;
+for (const keyword of keywords) {
+  const searchUrl = new URL("/v1/search", apiBaseUrl);
+  searchUrl.searchParams.set("keyword", keyword);
+  searchUrl.searchParams.set("page", "1");
+  searchUrl.searchParams.set("pageSize", "5");
+  searchUrl.searchParams.set("sources", sources);
+
+  const { response: searchResponse, body: searchBody } = await fetchJson(searchUrl).catch((error) => ({
+    response: { status: 0 },
+    body: { error: error.message },
+  }));
+  console.log(
+    JSON.stringify(
+      {
+        step: "search",
+        status: searchResponse.status,
+        keyword,
+        sources,
+        groups: searchBody.data?.map((group) => ({
+          source: group.source,
+          total: group.total,
+          songs: group.songs?.length ?? 0,
+        })),
+        error: searchBody.error,
+      },
+      null,
+      2,
+    ),
+  );
+
+  for (const group of searchBody.data ?? []) {
+    for (const song of (group.songs ?? []).slice(0, 3)) {
+      testedCount += 1;
+      const urlEndpoint = new URL(
+        `/v1/songs/${encodeURIComponent(song.source)}/${encodeURIComponent(song.id)}/url`,
+        apiBaseUrl,
+      );
+      const { response, body } = await fetchJson(urlEndpoint).catch((error) => ({
+        response: { status: 0 },
+        body: { error: error.message },
+      }));
+      const playableUrl = body.data?.url ?? null;
+      const audio = playableUrl ? await checkAudioUrl(playableUrl).catch((error) => ({ error: error.message })) : null;
+      if (audio?.ok) {
+        playableCount += 1;
+      }
+
+      console.log(
+        JSON.stringify(
+          {
+            step: "song",
+            keyword,
+            source: song.source,
+            id: song.id,
+            name: song.name,
+            urlStatus: response.status,
+            hasPlayableUrl: Boolean(playableUrl),
+            audio,
+            error: body.error,
+          },
+          null,
+          2,
+        ),
+      );
     }
 
-    console.log(
-      JSON.stringify(
-        {
-          step: "song",
-          source: song.source,
-          id: song.id,
-          name: song.name,
-          urlStatus: response.status,
-          hasPlayableUrl: Boolean(playableUrl),
-          audio,
-        },
-        null,
-        2,
-      ),
-    );
+    if (playableCount > 0) {
+      break;
+    }
+  }
+
+  if (playableCount > 0) {
+    break;
   }
 }
 
