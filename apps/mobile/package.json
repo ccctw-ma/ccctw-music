@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm --filter @ccctw-music/web build && pnpm check",
-    "check": "node scripts/check.mjs",
+    "check": "tsx scripts/check.ts",
     "sync": "capacitor sync",
     "build:ios": "capacitor open ios",
     "build:android": "capacitor open android"

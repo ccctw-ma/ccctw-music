@@ -13,7 +13,7 @@
 .content {
   position: absolute;
   display: block;
-  top: 3re,;
+  top: 3re;
   bottom: 3.5rem;
   height: calc(100vh - 6.5rem);
   width: 100%;
@@ -34,11 +34,11 @@
   }
 }
 
-.musicPlaySpinPause{
+.musicPlaySpinPause {
   animation-play-state: paused;
 }
 
-.musicNameLoop{
+.musicNameLoop {
   animation: 15s wordLoop linear infinite normal;
 }
 
@@ -48,7 +48,7 @@
     -webkit-transform: translateX(200px);
   }
 
-  100%{
+  100% {
     transform: translateX(-100%);
     -webkit-transform: translateX(-100%);
   }
