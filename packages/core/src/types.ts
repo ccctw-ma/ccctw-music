@@ -25,6 +25,16 @@ export interface Lyric {
   raw?: string;
 }
 
+export interface SongQuality {
+  sourceLabel: string;
+  official: boolean;
+  free: boolean;
+  playable: boolean;
+  quality: "lossless" | "high" | "standard" | "unknown";
+  score: number;
+  badges: string[];
+}
+
 export interface Song {
   id: string;
   source: MusicSource;
@@ -36,6 +46,7 @@ export interface Song {
   lyricUrl?: string;
   playableUrl?: string | null;
   coverUrl?: string | null;
+  quality: SongQuality;
   raw?: unknown;
 }
 

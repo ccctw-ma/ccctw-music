@@ -2,12 +2,23 @@ import { describe, expect, it, vi } from "vitest";
 import { PlayerStore } from "./player";
 import type { Song } from "./types";
 
+const quality = {
+  sourceLabel: "咪咕音乐",
+  official: true,
+  free: true,
+  playable: true,
+  quality: "standard" as const,
+  score: 81,
+  badges: ["正版", "免费可播", "标准音质"],
+};
+
 const song: Song = {
   id: "1",
   source: "migu",
   name: "Song",
   artists: [{ name: "Artist" }],
   duration: 200,
+  quality,
 };
 
 describe("PlayerStore", () => {

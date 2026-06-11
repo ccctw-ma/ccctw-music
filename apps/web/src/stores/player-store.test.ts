@@ -2,12 +2,23 @@ import { describe, expect, it, beforeEach } from "vitest";
 import { usePlayerStore, songKey } from "./player-store";
 import type { Song } from "@ccctw-music/core";
 
+const quality = {
+  sourceLabel: "咪咕音乐",
+  official: true,
+  free: true,
+  playable: true,
+  quality: "standard" as const,
+  score: 81,
+  badges: ["正版", "免费可播", "标准音质"],
+};
+
 const song: Song = {
   id: "1",
   source: "migu",
   name: "Song",
   artists: [{ name: "Artist" }],
   duration: 200,
+  quality,
 };
 
 const nextSong: Song = {
@@ -16,6 +27,7 @@ const nextSong: Song = {
   name: "Next Song",
   artists: [{ name: "Next Artist" }],
   duration: 180,
+  quality: { ...quality, sourceLabel: "网易云音乐", free: false, playable: false, score: 56 },
 };
 
 const thirdSong: Song = {
@@ -24,6 +36,7 @@ const thirdSong: Song = {
   name: "Third Song",
   artists: [{ name: "Third Artist" }],
   duration: 160,
+  quality: { ...quality, sourceLabel: "QQ 音乐", free: false, playable: false, score: 58 },
 };
 
 beforeEach(() => {

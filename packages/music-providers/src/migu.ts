@@ -14,6 +14,27 @@ interface MiguSearchResponse {
   pgt?: number;
 }
 
+interface MiguResourceInfoResponse {
+  resource?: unknown[];
+}
+
+async function miguSongDetail(id: string, context: ProviderContext) {
+  const params = toSearchParams({
+    copyrightId: id,
+    resourceType: 2,
+  });
+  const data = await getJson<MiguResourceInfoResponse>(
+    context.fetch,
+    `https://app.c.nf.migu.cn/MIGUM3.0/v1.0/content/resourceinfo.do?${params.toString()}`,
+    {
+      headers: {
+        referer: "https://music.migu.cn",
+      },
+    },
+  );
+  return formatSongs(data.resource ?? [], "migu")[0] ?? null;
+}
+
 export const miguProvider: MusicProvider = {
   source: "migu",
 
@@ -43,6 +64,11 @@ export const miguProvider: MusicProvider = {
   },
 
   async songDetail(id: string, context: ProviderContext): Promise<Song | null> {
+    const detail = await miguSongDetail(id, context).catch(() => null);
+    if (detail) {
+      return detail;
+    }
+
     const result = await this.search({ keyword: id, sources: ["migu"], pageSize: 1 }, context);
     return result.songs[0] ?? null;
   },

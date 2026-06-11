@@ -7,7 +7,7 @@ import {
   type Song,
 } from "@ccctw-music/core";
 import CryptoJS from "crypto-js";
-import { getJson, toSearchParams } from "./http";
+import { fetchWithTimeout, getJson, toSearchParams } from "./http";
 import type { MusicProvider, PlayableUrl, ProviderContext } from "./types";
 
 interface NeteaseSearchResponse {
@@ -76,19 +76,23 @@ async function postNeteaseEapi<T>(
     __csrf: "",
   };
   const params = createNeteaseEapiParams(path, { ...payload, header });
-  const response = await context.fetch(`https://interface3.music.163.com/eapi/song/enhance/player/url`, {
-    method: "POST",
-    body: toSearchParams({ params }),
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: Object.entries(header)
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-        .join("; "),
-      Referer: "https://music.163.com",
-      "User-Agent":
-        "Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
+  const response = await fetchWithTimeout(
+    context.fetch,
+    `https://interface3.music.163.com/eapi/song/enhance/player/url`,
+    {
+      method: "POST",
+      body: toSearchParams({ params }),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Cookie: Object.entries(header)
+          .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+          .join("; "),
+        Referer: "https://music.163.com",
+        "User-Agent":
+          "Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
+      },
     },
-  });
+  );
 
   if (!response.ok) {
     throw new Error(`Netease eapi failed: ${response.status} ${response.statusText}`);

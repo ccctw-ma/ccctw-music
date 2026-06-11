@@ -1,4 +1,4 @@
-import type { MusicSource, Song } from "./types";
+import type { MusicSource, Song, SongQuality } from "./types";
 
 type UnknownRecord = Record<string, any>;
 
@@ -12,7 +12,63 @@ function artistsFromNames(names?: string): { name: string }[] {
     : [];
 }
 
+function miguCoverUrl(raw: UnknownRecord): string | undefined {
+  const albumImages = raw.albumImgs;
+  if (Array.isArray(albumImages)) {
+    const image = albumImages.find((item) => item?.imgSizeType === "03") ?? albumImages.at(-1);
+    return image?.img ?? image?.webpImg ?? image?.imgOri;
+  }
+  return raw.cover;
+}
+
+function miguDuration(raw: UnknownRecord): number | undefined {
+  const duration = Number(raw.duration ?? raw.length);
+  if (!Number.isFinite(duration) || duration <= 0) {
+    return undefined;
+  }
+  return duration > 1000 ? Math.round(duration / 1000) : duration;
+}
+
+function qualityFor(
+  source: MusicSource,
+  input: { playable?: boolean; lossless?: boolean; high?: boolean },
+): SongQuality {
+  const sourceLabel =
+    source === "migu" ? "咪咕音乐" : source === "netease" ? "网易云音乐" : source === "qq" ? "QQ 音乐" : source;
+  const official = source === "migu" || source === "netease" || source === "qq";
+  const quality = input.lossless ? "lossless" : input.high ? "high" : input.playable ? "standard" : "unknown";
+  const sourceScore = source === "migu" ? 30 : source === "qq" ? 24 : source === "netease" ? 22 : 10;
+  const score =
+    sourceScore +
+    (official ? 20 : 0) +
+    (input.playable ? 25 : 0) +
+    (quality === "lossless" ? 20 : quality === "high" ? 14 : 6);
+  const badges = [
+    official ? "正版" : undefined,
+    input.playable ? "免费可播" : undefined,
+    quality === "lossless" ? "无损" : quality === "high" ? "高品质" : quality === "standard" ? "标准音质" : undefined,
+    sourceLabel,
+  ].filter((badge): badge is string => Boolean(badge));
+
+  return {
+    sourceLabel,
+    official,
+    free: Boolean(input.playable),
+    playable: Boolean(input.playable),
+    quality,
+    score,
+    badges,
+  };
+}
+
 export function formatMiguSong(raw: UnknownRecord): Song {
+  const coverUrl = miguCoverUrl(raw);
+  const playableUrl = raw.mp3 ?? raw.url ?? null;
+  const formats = [
+    ...(Array.isArray(raw.newRateFormats) ? raw.newRateFormats : []),
+    ...(Array.isArray(raw.rateFormats) ? raw.rateFormats : []),
+  ];
+  const formatTypes = formats.map((item) => String(item?.formatType ?? "").toUpperCase());
   return {
     id: String(raw.id ?? raw.copyrightId ?? raw.songId ?? ""),
     source: "migu",
@@ -20,15 +76,20 @@ export function formatMiguSong(raw: UnknownRecord): Song {
     artists: artistsFromNames(raw.singerName ?? raw.singer),
     album: {
       id: raw.albumId ? String(raw.albumId) : undefined,
-      name: raw.albumName,
-      coverUrl: raw.cover,
+      name: raw.albumName ?? raw.album,
+      coverUrl,
       source: "migu",
       raw,
     },
-    duration: raw.duration ? Number(raw.duration) : undefined,
-    lyricUrl: raw.lyrics,
-    playableUrl: raw.mp3 ?? null,
-    coverUrl: raw.cover ?? null,
+    duration: miguDuration(raw),
+    lyricUrl: raw.lyrics ?? raw.lrcUrl,
+    playableUrl,
+    coverUrl: coverUrl ?? null,
+    quality: qualityFor("migu", {
+      playable: Boolean(playableUrl),
+      lossless: formatTypes.some((value) => value.includes("SQ") || value.includes("ZQ")),
+      high: formatTypes.some((value) => value.includes("HQ") || value.includes("PQ")),
+    }),
     raw,
   };
 }
@@ -54,6 +115,10 @@ export function formatNeteaseSong(raw: UnknownRecord): Song {
     duration: typeof raw.duration === "number" ? raw.duration / 1000 : undefined,
     playableUrl: null,
     coverUrl: album.picUrl ?? null,
+    quality: qualityFor("netease", {
+      playable: false,
+      high: true,
+    }),
     raw,
   };
 }
@@ -80,6 +145,10 @@ export function formatQqSong(raw: UnknownRecord): Song {
     duration: typeof raw.interval === "number" ? raw.interval : undefined,
     playableUrl: null,
     coverUrl: albumMid ? `https://y.qq.com/music/photo_new/T002R300x300M000${albumMid}.jpg` : null,
+    quality: qualityFor("qq", {
+      playable: false,
+      high: true,
+    }),
     raw,
   };
 }
@@ -90,15 +159,24 @@ export function formatSongs(rawSongs: unknown[], source: MusicSource): Song[] {
   }
 
   if (source === "migu") {
-    return rawSongs.map((song) => formatMiguSong(song as UnknownRecord)).filter((song) => song.id && song.name);
+    return rawSongs
+      .map((song) => formatMiguSong(song as UnknownRecord))
+      .filter((song) => song.id && song.name)
+      .sort((left, right) => right.quality.score - left.quality.score);
   }
 
   if (source === "netease") {
-    return rawSongs.map((song) => formatNeteaseSong(song as UnknownRecord)).filter((song) => song.id && song.name);
+    return rawSongs
+      .map((song) => formatNeteaseSong(song as UnknownRecord))
+      .filter((song) => song.id && song.name)
+      .sort((left, right) => right.quality.score - left.quality.score);
   }
 
   if (source === "qq") {
-    return rawSongs.map((song) => formatQqSong(song as UnknownRecord)).filter((song) => song.id && song.name);
+    return rawSongs
+      .map((song) => formatQqSong(song as UnknownRecord))
+      .filter((song) => song.id && song.name)
+      .sort((left, right) => right.quality.score - left.quality.score);
   }
 
   return [];

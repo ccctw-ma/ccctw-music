@@ -1,16 +1,74 @@
 # CCCTW Music
 
-一个面向 Web、桌面端、iOS、Android 和鸿蒙端的多端音乐应用。
+中文 | [English](./README.en.md)
+
+CCCTW Music 是一个面向 Web、桌面端、iOS、Android 和后续鸿蒙端的多端音乐应用。当前主线是纯 React SPA，后端运行在 Cloudflare Workers，通过统一的音乐 Provider 层聚合咪咕、网易云、QQ 音乐等来源。
+
+## 项目要求
+
+- 主线架构必须保持 React SPA + Rsbuild/Rspack，禁止把运行主线切回 Next.js。
+- 全仓源码使用 TypeScript / TSX，禁止新增 `.js`、`.jsx`、`.mjs`、`.cjs` 源文件。
+- 服务端使用 Cloudflare Workers + Hono，前后端通过共享 contracts、core 类型和 API client 保持类型一致。
+- Web UI 保持天蓝色沉浸式主题、紧凑布局和清晰可访问的交互文案。
+- 每次涉及功能逻辑、接口协议、数据流、缓存策略、部署流程或架构的变更，都必须同步更新 `README.md` 和 `README.en.md`。
+- Agent 执行项目任务时必须遵守 `agent.md`。
 
 ## 技术架构
 
-- Web：React + Rsbuild/Rspack + TypeScript
-- 服务端：Cloudflare Workers + Hono + TypeScript
-- 工程：pnpm workspace + Turborepo
-- 共享核心：core、contracts、api-client、music-providers、platform、ui
-- 后续端壳：Tauri、Capacitor、ArkTS Shell + ArkWeb
+- `apps/web`：React + Rsbuild/Rspack + TypeScript 的 Web SPA，负责搜索、播放、歌词、队列、收藏和响应式 UI。
+- `apps/server`：Cloudflare Workers + Hono API，提供搜索、歌曲详情、歌词和播放 URL 接口。
+- `apps/desktop`：Tauri 壳，复用 `apps/web/dist`。
+- `apps/mobile`：Capacitor 壳，复用 `apps/web/dist`。
+- `packages/core`：音乐领域模型、格式化、歌词解析、播放队列等纯逻辑。
+- `packages/contracts`：Zod 请求/响应约束，保证 API 入参一致。
+- `packages/api-client`：浏览器端调用 Worker API 的类型安全客户端。
+- `packages/music-providers`：音乐来源适配层，封装咪咕、网易云、QQ 音乐的搜索、详情、歌词和播放 URL 获取逻辑。
+- `packages/platform`：平台能力抽象。
+- `packages/ui`：UI 评分和共享 UI 逻辑。
+- `e2e`：Playwright Web E2E 和 UI 风格评分门禁。
 
-## 开发
+## 音乐信息获取
+
+前端不直接访问第三方音乐站点，而是通过 Worker API 获取统一格式的数据。
+
+```text
+Web UI
+  -> @ccctw-music/api-client
+  -> Cloudflare Worker / Hono API
+  -> @ccctw-music/music-providers
+  -> migu / netease / qq upstream APIs
+```
+
+核心接口：
+
+- `GET /health`：检查 Worker API 健康状态。
+- `GET /v1/search?keyword=晴天&page=1&pageSize=30&sources=migu,netease,qq`：跨来源搜索歌曲。
+- `GET /v1/songs/:source/:id`：获取歌曲详情。
+- `GET /v1/songs/:source/:id/lyric`：获取歌词，返回原始歌词和结构化歌词行。
+- `GET /v1/songs/:source/:id/url`：获取可播放音频 URL。
+
+Provider 行为：
+
+- 默认搜索来源为 `migu`、`netease`、`qq`。
+- 跨来源搜索会去重重复 source，并并发请求各 Provider。
+- 搜索结果按来源分组返回，单个来源失败不会导致整体搜索失败。
+- 每首歌都会归一为统一 `Song` 结构，并包含 `quality` 字段标识来源、正版、免费可播、音质和排序分。
+- API 会优先返回正版、免费可播、高质量的结果，前端会展示来源和质量标签。
+- 所有上游音乐接口默认 8 秒超时，避免慢接口拖垮整体搜索或播放链路。
+- 咪咕歌曲详情优先通过 `copyrightId` 调用 `resourceinfo.do` 获取准确元数据，失败时回退到搜索结果。
+- 歌词缓存 24 小时，搜索和播放 URL 缓存 10 分钟。
+- 播放 URL 只缓存非空结果，禁止缓存 `null` 或失效 URL，避免阻断 fallback。
+- 前端播放时优先尝试搜索结果内的直链；如果前端直连失败，再请求 Cloudflare 服务端解析播放 URL；如果仍失败，会自动切换候选歌曲并最终提示接口错误。
+- 真实播放能力由 `scripts/verify-live-playback.ts` 对线上 API 和音频 Range 请求做拨测。
+
+## 调研参考
+
+- [咪咕 MusicApi 文档](https://jsososo.github.io/MiguMusicApi/)：`/song` 支持使用 `cid/copyrightId` 获取歌曲信息。
+- [QQ 音乐 vkey 获取实践](https://www.cnblogs.com/Byme/p/9989544.html)：QQ 播放 URL 仍依赖 `songmid + filename + vkey` 生成。
+- [NeteaseCloudMusicApi 相关说明](https://blog.csdn.net/gitblog_00564/article/details/161223949)：网易云常用搜索、歌词、歌曲播放 URL 模块组合。
+- [@magicdawn/music-api](https://www.npmjs.com/package/@magicdawn/music-api)：多来源音乐 API 的统一封装思路。
+
+## 本地开发
 
 ```bash
 pnpm install
@@ -18,31 +76,46 @@ pnpm dev:web
 pnpm dev:server
 ```
 
+常用命令：
+
+- `pnpm build`：构建并检查所有 workspace。
+- `pnpm test:unit`：运行 Vitest 单元测试和覆盖率。
+- `pnpm test:e2e`：运行 Playwright Web E2E。
+- `pnpm score:ui`：运行 UI 风格评分门禁。
+- `pnpm test:live-playback`：拨测线上真实播放链路。
+- `pnpm quality`：运行完整质量门禁。
+
 ## 质量门禁
 
-每次变更完成后运行：
+每次功能或架构变更完成后至少运行：
 
 ```bash
 pnpm quality
 ```
 
-该命令会自动执行：
+质量要求：
 
-- 全 workspace 构建
-- Vitest 单元测试和 90%+ 覆盖率门禁
-- Playwright Web E2E
-- Desktop / Mobile / Harmony 多端配置检查
+- 单元测试覆盖率必须保持 90% 以上。
+- Web E2E 必须覆盖搜索、播放、歌词、进度、收藏、队列、底部控制和空状态等关键链路。
+- UI style gate 必须大于 90 分，当前目标为 Desktop / Mobile 双端 100 分。
+- 真实播放相关变更必须运行 `pnpm test:live-playback`。
 
 更多说明见 `docs/quality-gates.md`。
 
-提交门禁和 GitHub 自动部署说明见 `docs/ci-cd.md`。
-
 ## 部署
 
-- Web：Cloudflare Pages，构建命令 `pnpm --filter @ccctw-music/web build`，产物目录 `apps/web/dist`
-- API：Cloudflare Workers，执行 `pnpm deploy:server`
-- Cloudflare 资源创建清单见 `docs/cloudflare-setup.md`
+部署只能通过 GitHub Actions 触发，禁止本地手动部署作为主流程。
 
-## 迁移说明
+- Web：Cloudflare Pages，产物目录 `apps/web/dist`。
+- API：Cloudflare Workers，服务名 `ccctw-music-api`。
+- CI 流程：提交到 `main` -> Quality Gate -> Deploy Worker -> Verify live playback -> Deploy Pages。
+- Cloudflare 资源创建清单见 `docs/cloudflare-setup.md`。
+- 提交门禁和自动部署说明见 `docs/ci-cd.md`。
 
-旧的 Next.js 代码暂时保留在 `pages/`、`components/`、`util/` 中作为迁移参考。新的主线代码位于 `apps/` 和 `packages/`。
+## 文档维护
+
+- 中文 README：`README.md`。
+- 英文 README：`README.en.md`。
+- Agent 规范：`agent.md`。
+- 功能逻辑、接口、Provider、缓存、部署和架构变更必须同步更新中英文 README。
+- 只调整样式、文案或测试时，如果不影响项目行为，可以只在必要时更新文档。

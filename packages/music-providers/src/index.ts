@@ -12,12 +12,18 @@ export const providers = {
   qq: qqProvider,
 } satisfies Partial<Record<MusicSource, MusicProvider>>;
 
+const DEFAULT_SOURCES: MusicSource[] = ["migu", "netease", "qq"];
+
 export function getProvider(source: MusicSource): MusicProvider | undefined {
   return providers[source as keyof typeof providers];
 }
 
+function bestScore(result: SearchResult) {
+  return result.songs[0]?.quality.score ?? 0;
+}
+
 export async function searchAcrossProviders(input: SearchInput, context: ProviderContext): Promise<SearchResult[]> {
-  const sources: MusicSource[] = input.sources?.length ? input.sources : ["migu", "netease", "qq"];
+  const sources = Array.from(new Set(input.sources?.length ? input.sources : DEFAULT_SOURCES));
   const tasks = sources
     .map((source) => getProvider(source))
     .filter((provider): provider is MusicProvider => Boolean(provider))
@@ -34,5 +40,7 @@ export async function searchAcrossProviders(input: SearchInput, context: Provide
     });
 
   const settled = await Promise.allSettled(tasks);
-  return settled.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
+  return settled
+    .flatMap((result) => (result.status === "fulfilled" ? [result.value] : []))
+    .sort((left, right) => bestScore(right) - bestScore(left));
 }

@@ -44,12 +44,33 @@ describe("music providers", () => {
     const context: ProviderContext = {
       fetch: vi
         .fn()
-        .mockResolvedValueOnce(jsonResponse({ musics: [{ id: "m1", songName: "Migu Detail", mp3: "migu.mp3" }] }))
+        .mockResolvedValueOnce(
+          jsonResponse({
+            resource: [
+              {
+                copyrightId: "m1",
+                songName: "Migu Detail",
+                singer: "Singer",
+                album: "Album",
+                length: 123000,
+                lrcUrl: "lyric-url",
+                albumImgs: [{ imgSizeType: "03", img: "cover.webp" }],
+              },
+            ],
+          }),
+        )
+        .mockResolvedValueOnce(jsonResponse({ resource: [] }))
         .mockResolvedValueOnce(jsonResponse({ musics: [] }))
         .mockResolvedValueOnce(jsonResponse({ lyric: "plain lyric" })),
     };
 
-    await expect(miguProvider.songDetail("m1", context)).resolves.toMatchObject({ id: "m1", name: "Migu Detail" });
+    await expect(miguProvider.songDetail("m1", context)).resolves.toMatchObject({
+      id: "m1",
+      name: "Migu Detail",
+      duration: 123,
+      coverUrl: "cover.webp",
+      lyricUrl: "lyric-url",
+    });
     await expect(miguProvider.playableUrl("missing", context)).resolves.toEqual({ source: "migu", url: null });
     await expect(miguProvider.lyric("m1", context)).resolves.toMatchObject({
       type: 1,
@@ -253,6 +274,39 @@ describe("music providers", () => {
     expect(results).toHaveLength(1);
     expect(context.cache?.set).toHaveBeenCalledWith("search:migu:x:1:30", results[0], 600);
     expect(getProvider("other")).toBeUndefined();
+  });
+
+  it("deduplicates repeated providers before searching", async () => {
+    const context: ProviderContext = {
+      fetch: vi.fn().mockResolvedValue(jsonResponse({ musics: [{ id: "1", songName: "Unique" }] })),
+    };
+
+    const results = await searchAcrossProviders({ keyword: "x", sources: ["migu", "migu"] }, context);
+
+    expect(results).toHaveLength(1);
+    expect(context.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("orders provider groups by the best normalized quality score", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse({
+            result: {
+              songCount: 1,
+              songs: [{ id: 2, name: "Net", artists: [], album: {}, duration: 1000 }],
+            },
+          }),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({ musics: [{ id: "1", songName: "Migu", singerName: "A", mp3: "migu.mp3" }] }),
+        ),
+    };
+
+    const results = await searchAcrossProviders({ keyword: "x", sources: ["netease", "migu"] }, context);
+
+    expect(results.map((result) => result.source)).toEqual(["migu", "netease"]);
   });
 
   it("returns cached results and ignores rejected providers", async () => {

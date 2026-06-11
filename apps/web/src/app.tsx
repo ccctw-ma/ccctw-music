@@ -46,6 +46,20 @@ function sourceName(source?: string) {
   return source ? (names[source] ?? source) : "Source";
 }
 
+function songQuality(song?: Song) {
+  return (
+    song?.quality ?? {
+      sourceLabel: sourceName(song?.source),
+      official: Boolean(song?.source && SOURCES.includes(song.source as (typeof SOURCES)[number])),
+      free: Boolean(song?.playableUrl),
+      playable: Boolean(song?.playableUrl),
+      quality: "unknown" as const,
+      score: 0,
+      badges: [sourceName(song?.source)],
+    }
+  );
+}
+
 function artists(song?: Song) {
   return song?.artists.map((artist) => artist.name).join(" / ") || "选择一首歌";
 }
@@ -156,6 +170,15 @@ export function App() {
     setSubmittedKeyword(keyword.trim());
   }
 
+  async function loadAndPlay(url: string) {
+    if (!audioRef.current) {
+      return;
+    }
+    setAudioUrl(url);
+    audioRef.current.src = url;
+    await audioRef.current.play();
+  }
+
   async function startSong(song: Song, nextQueue = songs.length ? songs : [song]) {
     const fallbackQueue = [song, ...nextQueue.filter((candidate) => songKey(candidate) !== songKey(song))];
     setPlaybackError(null);
@@ -163,31 +186,47 @@ export function App() {
 
     try {
       let playableSong = song;
-      let playable = { source: song.source, url: song.playableUrl ?? null };
+      let playableUrl: string | null = null;
       for (const candidate of fallbackQueue.slice(0, 8)) {
         setLoadingSongId(songKey(candidate));
         playableSong = candidate;
-        playable = candidate.playableUrl
-          ? { source: candidate.source, url: candidate.playableUrl }
-          : await apiClient.playableUrl(candidate.source, candidate.id);
-        if (playable.url) {
+
+        if (candidate.playableUrl) {
+          try {
+            loadQueue(nextQueue, playableSong);
+            await loadAndPlay(candidate.playableUrl);
+            playableUrl = candidate.playableUrl;
+            break;
+          } catch {
+            playableUrl = null;
+          }
+        }
+
+        if (!playableUrl) {
+          const cloudflarePlayable = await apiClient.playableUrl(candidate.source, candidate.id).catch(() => null);
+          playableUrl = cloudflarePlayable?.url ?? null;
+        }
+
+        if (!playableUrl) {
+          continue;
+        }
+
+        try {
+          loadQueue(nextQueue, playableSong);
+          await loadAndPlay(playableUrl);
           break;
+        } catch {
+          playableUrl = null;
         }
       }
 
-      if (!playable.url) {
+      if (!playableUrl) {
         pause();
         setAudioUrl(null);
-        setPlaybackError("当前搜索结果暂时没有可播放音源，换个关键词试试。");
+        setPlaybackError("当前搜索结果暂时没有可播放音源，已尝试前端直连和服务端兜底。");
         return;
       }
 
-      loadQueue(nextQueue, playableSong);
-      setAudioUrl(playable.url);
-      if (audioRef.current) {
-        audioRef.current.src = playable.url;
-        await audioRef.current.play();
-      }
       play();
     } catch (error) {
       pause();
@@ -280,6 +319,17 @@ export function App() {
         >
           <Plus size={15} />
         </Button>
+      </span>
+    );
+  }
+
+  function renderQualityBadges(song: Song) {
+    const quality = songQuality(song);
+    return (
+      <span className="quality-badges" aria-label={`${song.name} 来源与音质`}>
+        {quality.badges.slice(0, 3).map((badge) => (
+          <span key={`${songKey(song)}-${badge}`}>{badge}</span>
+        ))}
       </span>
     );
   }
@@ -414,7 +464,7 @@ export function App() {
                 <h2>{heroSong?.name ?? "从搜索结果里选择一首歌"}</h2>
                 <p>
                   {heroSong
-                    ? `${artists(heroSong)} · ${sourceName(heroSong.source)}`
+                    ? `${artists(heroSong)} · ${songQuality(heroSong).sourceLabel} · ${songQuality(heroSong).badges.slice(0, 2).join(" / ")}`
                     : "搜索歌曲或歌手，点击结果后会直接请求音源并启动播放器。"}
                 </p>
                 {playbackError ? <strong className="playback-error">{playbackError}</strong> : null}
@@ -441,7 +491,9 @@ export function App() {
                     <Download size={16} />
                     下载
                   </Button>
-                  <span>{current ? sourceName(current.source) : `${songs.length} 首结果`}</span>
+                  <span>
+                    {current ? songQuality(current).badges.slice(0, 2).join(" / ") : `${songs.length} 首结果`}
+                  </span>
                 </div>
               </div>
               <div className="wave-stack" aria-hidden="true">
@@ -525,8 +577,9 @@ export function App() {
                         <span className="song-meta">
                           <strong>{song.name}</strong>
                           <small>
-                            {artists(song)} · {sourceName(song.source)}
+                            {artists(song)} · {songQuality(song).sourceLabel}
                           </small>
+                          {renderQualityBadges(song)}
                         </span>
                         <span className="row-play-icon" aria-hidden="true">
                           {loadingSongId === key ? <Loader2 size={16} className="spin" /> : <Play size={16} />}
@@ -556,7 +609,7 @@ export function App() {
                 <img className="cover" src={current?.coverUrl || currentCover} {...coverProps(420)} />
                 <span className={isPlaying ? "pulse-dot active" : "pulse-dot"} />
               </div>
-              <span className="section-kicker">{sourceName(current?.source)}</span>
+              <span className="section-kicker">{songQuality(current).sourceLabel}</span>
               <h2>{current?.name ?? "未播放"}</h2>
               <p>{currentArtists}</p>
               <div className="progress-shell" aria-label={`${formatTime(currentTime)} / ${formatTime(duration)}`}>

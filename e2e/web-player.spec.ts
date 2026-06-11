@@ -1,6 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const playableAudioUrl = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=";
+const quality = {
+  sourceLabel: "咪咕音乐",
+  official: true,
+  free: true,
+  playable: true,
+  quality: "standard",
+  score: 81,
+  badges: ["正版", "免费可播", "标准音质"],
+};
 
 const fixtureSongs = [
   {
@@ -10,6 +19,7 @@ const fixtureSongs = [
     artists: [{ name: "周杰伦" }],
     coverUrl: null,
     duration: 120,
+    quality,
   },
   {
     id: "2",
@@ -18,6 +28,7 @@ const fixtureSongs = [
     artists: [{ name: "周杰伦" }],
     coverUrl: null,
     duration: 150,
+    quality: { ...quality, sourceLabel: "网易云音乐", free: false, playable: false, score: 56 },
   },
 ];
 
@@ -125,6 +136,8 @@ test("searches, organizes library, controls queue, and displays lyrics", async (
 
   const songButton = page.getByRole("button", { name: /播放 晴天/ }).first();
   await expect(songButton).toBeVisible();
+  await expect(page.getByText("正版").first()).toBeVisible();
+  await expect(page.getByText("免费可播").first()).toBeVisible();
   await songButton.click();
 
   await expect.poll(apiState.playableUrlRequested).toBe(true);

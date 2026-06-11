@@ -26,6 +26,16 @@ const mediaMocks = {
   load: vi.fn(),
 };
 
+const quality = {
+  sourceLabel: "咪咕音乐",
+  official: true,
+  free: true,
+  playable: true,
+  quality: "standard" as const,
+  score: 81,
+  badges: ["正版", "免费可播", "标准音质"],
+};
+
 const songs = [
   {
     id: "1",
@@ -34,6 +44,7 @@ const songs = [
     artists: [{ name: "周杰伦" }],
     coverUrl: null,
     duration: 120,
+    quality,
   },
   {
     id: "2",
@@ -42,6 +53,7 @@ const songs = [
     artists: [{ name: "周杰伦" }],
     coverUrl: null,
     duration: 150,
+    quality: { ...quality, sourceLabel: "网易云音乐", free: false, playable: false, score: 56 },
   },
 ];
 
@@ -135,6 +147,16 @@ describe("App", () => {
     expect(screen.getAllByTestId(/shadcn-button:/).length).toBeGreaterThanOrEqual(6);
   });
 
+  it("shows normalized source and quality badges", async () => {
+    renderApp();
+
+    await screen.findByRole("button", { name: /播放 晴天/ });
+    expect(screen.getAllByText("正版").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("免费可播").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("标准音质").length).toBeGreaterThan(0);
+    expect(screen.getAllByText((content) => content.includes("咪咕音乐")).length).toBeGreaterThan(0);
+  });
+
   it("submits new keyword from an accessible search field and shows loading and empty states", async () => {
     let resolveSecondSearch: (value: []) => void = () => {};
     apiMocks.search.mockResolvedValueOnce([{ source: "migu", total: songs.length, songs }]).mockReturnValueOnce(
@@ -219,7 +241,7 @@ describe("App", () => {
 
     await selectFirstSong();
 
-    expect(await screen.findByText("播放加载失败，可能是音源失效或网络不可用。")).not.toBeNull();
+    expect(await screen.findByText("当前搜索结果暂时没有可播放音源，已尝试前端直连和服务端兜底。")).not.toBeNull();
     expect(await screen.findByText("歌词暂时加载失败。")).not.toBeNull();
   });
 
@@ -238,6 +260,24 @@ describe("App", () => {
     expect(apiMocks.playableUrl).not.toHaveBeenCalled();
     expect(screen.getByTestId("audio-player")).toHaveProperty("src", "https://cdn.example.com/local.mp3");
     expect(usePlayerStore.getState().queue.map(songKey)).toEqual(["migu:1"]);
+  });
+
+  it("falls back to Cloudflare playable url when direct frontend playback fails", async () => {
+    apiMocks.search.mockResolvedValue([
+      {
+        source: "migu",
+        total: 1,
+        songs: [{ ...songs[0], playableUrl: "https://cdn.example.com/direct-fail.mp3" }],
+      },
+    ]);
+    mediaMocks.play.mockRejectedValueOnce(new Error("direct failed")).mockResolvedValueOnce(undefined);
+    apiMocks.playableUrl.mockResolvedValueOnce({ source: "migu", url: "https://cdn.example.com/server.mp3" });
+
+    renderApp();
+    await userEvent.click(await screen.findByRole("button", { name: /播放 晴天/ }));
+
+    expect(apiMocks.playableUrl).toHaveBeenCalledWith("migu", "1");
+    expect(screen.getByTestId("audio-player")).toHaveProperty("src", "https://cdn.example.com/server.mp3");
   });
 
   it("skips unavailable search results and plays the next playable song", async () => {
@@ -259,7 +299,7 @@ describe("App", () => {
       {
         source: "migu",
         total: 1,
-        songs: [{ id: "3", source: "migu", name: "静音曲", artists: [], coverUrl: null }],
+        songs: [{ id: "3", source: "migu", name: "静音曲", artists: [], coverUrl: null, quality }],
       },
     ]);
     apiMocks.playableUrl
@@ -271,7 +311,7 @@ describe("App", () => {
     expect(screen.getAllByRole("button", { name: /播放/ })[0]).toHaveProperty("disabled", true);
 
     await userEvent.click(await screen.findByRole("button", { name: /播放 静音曲/ }));
-    expect(await screen.findByText("当前搜索结果暂时没有可播放音源，换个关键词试试。")).not.toBeNull();
+    expect(await screen.findByText("当前搜索结果暂时没有可播放音源，已尝试前端直连和服务端兜底。")).not.toBeNull();
 
     await userEvent.click(screen.getByRole("button", { name: /播放 静音曲/ }));
     fireEvent.error(screen.getByTestId("audio-player"));
@@ -338,5 +378,19 @@ describe("App", () => {
     await userEvent.click(screen.getAllByRole("button", { name: /播放/ })[0]);
 
     await waitFor(() => expect(apiMocks.playableUrl).toHaveBeenCalledWith("migu", "1"));
+  });
+
+  it("keeps rendering legacy persisted songs without quality metadata", async () => {
+    renderApp();
+    usePlayerStore.getState().setCurrent({
+      id: "legacy",
+      source: "other",
+      name: "Legacy",
+      artists: [{ name: "Old" }],
+      duration: 90,
+    } as never);
+
+    await waitFor(() => expect(screen.getAllByRole("heading", { name: "Legacy" }).length).toBeGreaterThan(0));
+    expect(screen.getAllByText((content) => content.includes("other")).length).toBeGreaterThan(0);
   });
 });

@@ -22,6 +22,12 @@ describe("song formatters", () => {
       lyricUrl: "lyric-url",
       playableUrl: "audio.mp3",
       coverUrl: "cover.jpg",
+      quality: {
+        sourceLabel: "咪咕音乐",
+        official: true,
+        free: true,
+        playable: true,
+      },
     });
   });
 
@@ -40,6 +46,7 @@ describe("song formatters", () => {
       artists: [{ id: "1", name: "Artist" }],
       duration: 210,
       coverUrl: "cover.jpg",
+      quality: { sourceLabel: "网易云音乐", official: true, free: false, quality: "high" },
     });
   });
 
@@ -58,6 +65,7 @@ describe("song formatters", () => {
       source: "qq",
       artists: [{ id: "s1", name: "Singer" }],
       duration: 180,
+      quality: { sourceLabel: "QQ 音乐", official: true, free: false, quality: "high" },
     });
     expect(song.coverUrl).toContain("album-mid");
   });
@@ -117,6 +125,50 @@ describe("song formatters", () => {
     expect(formatQqSong({ songmid: "song-mid", songname: "Song Mid", singer: [{ name: "Singer" }] })).toMatchObject({
       id: "song-mid",
       artists: [{ id: "", name: "Singer" }],
+    });
+  });
+
+  it("scores lossless, high quality, playable, and sorted songs", () => {
+    const songs = formatSongs(
+      [
+        {
+          copyrightId: "low",
+          songName: "Low",
+          singer: "A",
+          rateFormats: [{ formatType: "LQ" }],
+        },
+        {
+          copyrightId: "lossless",
+          songName: "Lossless",
+          singer: "A",
+          mp3: "audio.mp3",
+          newRateFormats: [{ formatType: "SQ" }],
+        },
+        {
+          copyrightId: "high",
+          songName: "High",
+          singer: "A",
+          url: "audio-high.mp3",
+          rateFormats: [{ formatType: "HQ" }],
+        },
+      ],
+      "migu",
+    );
+
+    expect(songs.map((song) => song.id)).toEqual(["lossless", "high", "low"]);
+    expect(songs[0].quality).toMatchObject({
+      quality: "lossless",
+      playable: true,
+      free: true,
+      badges: expect.arrayContaining(["正版", "免费可播", "无损", "咪咕音乐"]),
+    });
+    expect(songs[1].quality).toMatchObject({
+      quality: "high",
+      badges: expect.arrayContaining(["高品质"]),
+    });
+    expect(songs[2].quality).toMatchObject({
+      quality: "unknown",
+      playable: false,
     });
   });
 });
