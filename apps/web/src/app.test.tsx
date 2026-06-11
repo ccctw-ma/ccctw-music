@@ -306,7 +306,7 @@ describe("App", () => {
     renderApp();
     usePlayerStore.getState().setCurrent(songs[0]);
 
-    expect(screen.getByRole("button", { name: "底部播放器播放" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: "迷你播放器播放" })).not.toBeNull();
   });
 
   it("keeps song-row actions as sibling buttons instead of invalid nested controls", async () => {

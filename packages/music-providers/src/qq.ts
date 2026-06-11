@@ -18,6 +18,25 @@ interface QqSearchResponse {
   };
 }
 
+interface QqPlayableResponse {
+  data?: {
+    items?: Array<{
+      filename?: string;
+      vkey?: string;
+    }>;
+  };
+}
+
+const QQ_GUID = "10000";
+
+function qqPlayableUrl(songMid: string, vkey?: string, filename = `C400${songMid}.m4a`) {
+  if (!vkey) {
+    return null;
+  }
+
+  return `https://dl.stream.qqmusic.qq.com/${filename}?vkey=${encodeURIComponent(vkey)}&guid=${QQ_GUID}&uin=0&fromtag=66`;
+}
+
 export const qqProvider: MusicProvider = {
   source: "qq",
 
@@ -54,10 +73,29 @@ export const qqProvider: MusicProvider = {
     return result.songs[0] ?? null;
   },
 
-  async playableUrl(_id: string): Promise<PlayableUrl> {
+  async playableUrl(id: string, context: ProviderContext): Promise<PlayableUrl> {
+    const filename = `C400${id}.m4a`;
+    const data = await getJson<QqPlayableResponse>(
+      context.fetch,
+      `https://c.y.qq.com/base/fcgi-bin/fcg_music_express_mobile3.fcg?${toSearchParams({
+        cid: "205361747",
+        format: "json",
+        guid: QQ_GUID,
+        filename,
+        songmid: id,
+      }).toString()}`,
+      {
+        headers: {
+          Referer: "https://y.qq.com",
+        },
+      },
+    );
+    const item = data.data?.items?.[0];
+
     return {
       source: "qq",
-      url: null,
+      url: qqPlayableUrl(id, item?.vkey, item?.filename ?? filename),
+      quality: "standard",
     };
   },
 

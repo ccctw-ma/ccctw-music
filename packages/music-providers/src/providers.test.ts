@@ -120,7 +120,7 @@ describe("music providers", () => {
     await expect(neteaseProvider.lyric("missing", context)).resolves.toMatchObject({ type: 0, lines: [] });
   });
 
-  it("searches qq, decodes lyrics and returns null playable url", async () => {
+  it("searches qq, decodes lyrics and returns playable url", async () => {
     const context: ProviderContext = {
       fetch: vi
         .fn()
@@ -129,20 +129,25 @@ describe("music providers", () => {
             data: {
               song: {
                 totalnum: 1,
-                list: [{ songid: 3, songname: "QQ", singer: [{ name: "Q" }], albummid: "mid" }],
+                list: [{ songid: 3, songmid: "song-mid", songname: "QQ", singer: [{ name: "Q" }], albummid: "mid" }],
               },
             },
           }),
         )
+        .mockResolvedValueOnce(jsonResponse({ data: { items: [{ filename: "C400song-mid.m4a", vkey: "vkey" }] } }))
         .mockResolvedValueOnce(jsonResponse({ lyric: btoa("[00:02.00]qq") })),
     };
 
     await expect(qqProvider.search({ keyword: "qq" }, context)).resolves.toMatchObject({
       source: "qq",
       total: 1,
-      songs: [{ id: "3", name: "QQ" }],
+      songs: [{ id: "song-mid", name: "QQ" }],
     });
-    await expect(qqProvider.playableUrl("3", context)).resolves.toEqual({ source: "qq", url: null });
+    await expect(qqProvider.playableUrl("song-mid", context)).resolves.toEqual({
+      source: "qq",
+      url: "https://dl.stream.qqmusic.qq.com/C400song-mid.m4a?vkey=vkey&guid=10000&uin=0&fromtag=66",
+      quality: "standard",
+    });
     await expect(qqProvider.lyric("song-mid", context)).resolves.toMatchObject({
       type: 2,
       lines: [{ sentence: "qq", timeStamp: 2 }],
@@ -172,6 +177,18 @@ describe("music providers", () => {
       source: "qq",
       total: 0,
       songs: [],
+    });
+  });
+
+  it("returns null qq playable url when vkey is missing", async () => {
+    const context: ProviderContext = {
+      fetch: vi.fn().mockResolvedValue(jsonResponse({ data: { items: [{}] } })),
+    };
+
+    await expect(qqProvider.playableUrl("missing", context)).resolves.toEqual({
+      source: "qq",
+      url: null,
+      quality: "standard",
     });
   });
 

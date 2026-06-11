@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const musicSourceSchema = z.enum(["netease", "qq", "migu", "bilibili", "other"]);
+export const musicSourceSchema = z.enum(["netease", "qq", "migu"]);
 
 export const searchQuerySchema = z.object({
   keyword: z.string().trim().min(1),
@@ -19,6 +19,19 @@ export const apiErrorSchema = z.object({
   detail: z.unknown().optional(),
 });
 
+export const apiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+  z.object({
+    data: dataSchema,
+  });
+
+export const playableUrlSchema = z.object({
+  source: musicSourceSchema,
+  url: z.string().nullable(),
+  quality: z.string().optional(),
+  expiresAt: z.string().optional(),
+});
+
 export type MusicSourceDto = z.infer<typeof musicSourceSchema>;
 export type SearchQueryDto = z.infer<typeof searchQuerySchema>;
 export type ApiErrorDto = z.infer<typeof apiErrorSchema>;
+export type PlayableUrlDto = z.infer<typeof playableUrlSchema>;

@@ -24,10 +24,24 @@ describe("createMusicApiClient", () => {
       ok: false,
       status: 500,
       statusText: "Server Error",
+      json: async () => ({ error: { code: "UPSTREAM_ERROR", message: "上游不可用" } }),
     });
     const client = createMusicApiClient({ baseUrl: "https://api.example.com", fetcher });
 
-    await expect(client.search({ keyword: "bad" })).rejects.toThrow("Search failed: 500 Server Error");
+    await expect(client.search({ keyword: "bad" })).rejects.toThrow("上游不可用");
+  });
+
+  it("loads song detail with encoded source and song id", async () => {
+    const song = { id: "song id", source: "migu", name: "Song", artists: [] };
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: song }),
+    });
+    const client = createMusicApiClient({ baseUrl: "https://api.example.com/", fetcher });
+
+    await expect(client.songDetail("migu", "song id")).resolves.toEqual(song);
+
+    expect(fetcher).toHaveBeenCalledWith("https://api.example.com/v1/songs/migu/song%20id");
   });
 
   it("loads playable urls with encoded source and song id", async () => {

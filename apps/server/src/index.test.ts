@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 const providerMocks = vi.hoisted(() => ({
   searchAcrossProviders: vi.fn(),
+  songDetail: vi.fn(),
   lyric: vi.fn(),
   playableUrl: vi.fn(),
 }));
@@ -15,6 +16,7 @@ vi.mock("@ccctw-music/music-providers", async (importOriginal: () => Promise<obj
       source === "migu"
         ? {
             source: "migu",
+            songDetail: providerMocks.songDetail,
             lyric: providerMocks.lyric,
             playableUrl: providerMocks.playableUrl,
           }
@@ -56,15 +58,41 @@ describe("worker api", () => {
   });
 
   it("returns lyric and playable url from provider", async () => {
+    providerMocks.songDetail.mockResolvedValue({ id: "1", source: "migu", name: "Song", artists: [] });
     providerMocks.lyric.mockResolvedValue({ type: 1, lines: [{ id: "1", sentence: "lyric" }] });
     providerMocks.playableUrl.mockResolvedValue({ source: "migu", url: "audio.mp3" });
 
+    await expect((await app.request("/v1/songs/migu/1", {}, env)).json()).resolves.toMatchObject({
+      data: { id: "1", name: "Song" },
+    });
     await expect((await app.request("/v1/songs/migu/1/lyric", {}, env)).json()).resolves.toMatchObject({
       data: { type: 1 },
     });
     await expect((await app.request("/v1/songs/migu/1/url", {}, env)).json()).resolves.toEqual({
       data: { source: "migu", url: "audio.mp3" },
     });
+  });
+
+  it("uses cache for lyric and playable url responses", async () => {
+    const cache = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce(JSON.stringify({ type: 1, lines: [{ id: "cached", sentence: "cached" }] }))
+        .mockResolvedValueOnce(JSON.stringify({ source: "migu", url: "cached.mp3" })),
+      put: vi.fn(),
+    };
+    const cacheEnv = { APP_ENV: "test", MUSIC_CACHE: cache };
+
+    await expect((await app.request("/v1/songs/migu/1/lyric", {}, cacheEnv)).json()).resolves.toMatchObject({
+      data: { type: 1 },
+    });
+    await expect((await app.request("/v1/songs/migu/1/url", {}, cacheEnv)).json()).resolves.toEqual({
+      data: { source: "migu", url: "cached.mp3" },
+    });
+
+    expect(cache.get).toHaveBeenCalledWith("lyric:migu:1");
+    expect(cache.get).toHaveBeenCalledWith("url:migu:1");
+    expect(cache.put).not.toHaveBeenCalled();
   });
 
   it("rejects unsupported source", async () => {

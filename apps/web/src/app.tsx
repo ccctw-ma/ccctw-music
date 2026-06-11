@@ -58,6 +58,14 @@ function coverProps(size: number) {
   };
 }
 
+function playbackErrorMessage(error: unknown) {
+  if (error instanceof Error && "status" in error && error.message) {
+    return error.message;
+  }
+
+  return "播放加载失败，可能是音源失效或网络不可用。";
+}
+
 function activeLyricId(lines: LyricLine[], currentTime: number) {
   let active = lines.find((line) => line.timeStamp !== undefined)?.id;
   for (const line of lines) {
@@ -163,9 +171,9 @@ export function App() {
         await audioRef.current.play();
       }
       play();
-    } catch {
+    } catch (error) {
       pause();
-      setPlaybackError("播放加载失败，可能是音源失效或网络不可用。");
+      setPlaybackError(playbackErrorMessage(error));
     } finally {
       setLoadingSongId(null);
     }
@@ -343,7 +351,12 @@ export function App() {
 
         <section className="listen-layout">
           <div className="main-stack">
-            <Card className="now-card" shadcnName="now-playing" id="discover" aria-label="Now Playing">
+            <Card
+              className={isPlaying ? "now-card playing" : "now-card"}
+              shadcnName="now-playing"
+              id="discover"
+              aria-label="Now Playing"
+            >
               <div className="cover-orbit">
                 <img src={current?.coverUrl || featuredSongs[0]?.coverUrl || "/favicon.svg"} {...coverProps(270)} />
               </div>
@@ -676,7 +689,7 @@ export function App() {
           type="button"
           variant="primary"
           shadcnName="mini-player-play"
-          aria-label={`底部播放器${isPlaying ? "暂停" : "播放"}`}
+          aria-label={`迷你播放器${isPlaying ? "暂停" : "播放"}`}
           onClick={handleTogglePlayback}
           disabled={!current || Boolean(loadingSongId)}
         >

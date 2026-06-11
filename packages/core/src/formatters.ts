@@ -61,9 +61,10 @@ export function formatNeteaseSong(raw: UnknownRecord): Song {
 export function formatQqSong(raw: UnknownRecord): Song {
   const singers = raw.singer ?? [];
   const albumMid = raw.albummid ?? raw.album?.mid;
+  const songMid = raw.songmid ?? raw.mid;
 
   return {
-    id: String(raw.songid ?? raw.id ?? raw.songmid ?? raw.mid ?? ""),
+    id: String(songMid ?? raw.songid ?? raw.id ?? ""),
     source: "qq",
     name: String(raw.songname ?? raw.name ?? raw.title ?? ""),
     artists: Array.isArray(singers)

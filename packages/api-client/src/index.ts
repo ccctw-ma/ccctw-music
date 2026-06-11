@@ -1,4 +1,4 @@
-import type { Lyric, MusicSource, SearchResult } from "@ccctw-music/core";
+import type { Lyric, MusicSource, SearchResult, Song } from "@ccctw-music/core";
 
 export interface MusicApiClientOptions {
   baseUrl: string;
@@ -21,8 +21,40 @@ export interface PlayableUrlResult {
 
 export interface MusicApiClient {
   search(params: SearchParams): Promise<SearchResult[]>;
+  songDetail(source: MusicSource, id: string): Promise<Song | null>;
   playableUrl(source: MusicSource, id: string): Promise<PlayableUrlResult>;
   lyric(source: MusicSource, id: string): Promise<Lyric>;
+}
+
+interface ApiErrorBody {
+  error?: {
+    code?: string;
+    message?: string;
+  };
+}
+
+export class MusicApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code = "API_ERROR",
+  ) {
+    super(message);
+    this.name = "MusicApiError";
+  }
+}
+
+async function readError(response: Response, fallback: string) {
+  try {
+    const body = (await response.json()) as ApiErrorBody;
+    if (body.error?.message) {
+      return new MusicApiError(body.error.message, response.status, body.error.code);
+    }
+  } catch {
+    // Keep the original status fallback when the API did not return JSON.
+  }
+
+  return new MusicApiError(`${fallback}: ${response.status} ${response.statusText}`, response.status);
 }
 
 export function createMusicApiClient(options: MusicApiClientOptions): MusicApiClient {
@@ -39,17 +71,27 @@ export function createMusicApiClient(options: MusicApiClientOptions): MusicApiCl
       });
       const response = await fetcher(`${baseUrl}/v1/search?${query.toString()}`);
       if (!response.ok) {
-        throw new Error(`Search failed: ${response.status} ${response.statusText}`);
+        throw await readError(response, "Search failed");
       }
 
       const data = (await response.json()) as { data: SearchResult[] };
       return data.data;
     },
 
+    async songDetail(source, id) {
+      const response = await fetcher(`${baseUrl}/v1/songs/${encodeURIComponent(source)}/${encodeURIComponent(id)}`);
+      if (!response.ok) {
+        throw await readError(response, "Song detail failed");
+      }
+
+      const data = (await response.json()) as { data: Song | null };
+      return data.data;
+    },
+
     async playableUrl(source, id) {
       const response = await fetcher(`${baseUrl}/v1/songs/${encodeURIComponent(source)}/${encodeURIComponent(id)}/url`);
       if (!response.ok) {
-        throw new Error(`Playable URL failed: ${response.status} ${response.statusText}`);
+        throw await readError(response, "Playable URL failed");
       }
 
       const data = (await response.json()) as { data: PlayableUrlResult };
@@ -61,7 +103,7 @@ export function createMusicApiClient(options: MusicApiClientOptions): MusicApiCl
         `${baseUrl}/v1/songs/${encodeURIComponent(source)}/${encodeURIComponent(id)}/lyric`,
       );
       if (!response.ok) {
-        throw new Error(`Lyric failed: ${response.status} ${response.statusText}`);
+        throw await readError(response, "Lyric failed");
       }
 
       const data = (await response.json()) as { data: Lyric };
