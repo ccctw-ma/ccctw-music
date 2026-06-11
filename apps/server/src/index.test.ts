@@ -91,7 +91,23 @@ describe("worker api", () => {
     });
 
     expect(cache.get).toHaveBeenCalledWith("lyric:migu:1");
-    expect(cache.get).toHaveBeenCalledWith("url:v2:migu:1");
+    expect(cache.get).toHaveBeenCalledWith("url:v3:migu:1");
+    expect(cache.put).not.toHaveBeenCalled();
+  });
+
+  it("does not cache empty playable url responses", async () => {
+    providerMocks.playableUrl.mockResolvedValue({ source: "migu", url: null });
+    const cache = {
+      get: vi.fn().mockResolvedValue(null),
+      put: vi.fn(),
+    };
+
+    await expect(
+      (await app.request("/v1/songs/migu/empty/url", {}, { APP_ENV: "test", MUSIC_CACHE: cache })).json(),
+    ).resolves.toEqual({
+      data: { source: "migu", url: null },
+    });
+
     expect(cache.put).not.toHaveBeenCalled();
   });
 
