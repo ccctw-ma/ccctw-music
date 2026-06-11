@@ -129,10 +129,27 @@ describe("music providers", () => {
     });
   });
 
+  it("falls back to a public netease url parser when eapi has no url", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ data: [{ url: null }] }))
+        .mockResolvedValueOnce(encryptedNeteaseResponse({ data: [{ url: null }] }))
+        .mockResolvedValueOnce(jsonResponse({ status: 1, musicurl: "http://cdn.example.com/public.mp3" })),
+    };
+
+    await expect(neteaseProvider.playableUrl("5", context)).resolves.toEqual({
+      source: "netease",
+      url: "https://cdn.example.com/public.mp3",
+      quality: "public",
+    });
+  });
+
   it("handles empty netease responses", async () => {
     const context: ProviderContext = {
       fetch: vi
         .fn()
+        .mockResolvedValueOnce(jsonResponse({}))
         .mockResolvedValueOnce(jsonResponse({}))
         .mockResolvedValueOnce(jsonResponse({}))
         .mockResolvedValueOnce(jsonResponse({}))

@@ -17,6 +17,11 @@ interface NeteaseSearchResponse {
   };
 }
 
+interface NeteasePublicUrlResponse {
+  status?: number;
+  musicurl?: string;
+}
+
 const NETEASE_EAPI_KEY = "e82ckenh8dichen8";
 const NETEASE_PLAYER_URL_PATH = "/api/song/enhance/player/url";
 
@@ -94,6 +99,15 @@ async function postNeteaseEapi<T>(
   return JSON.parse(decrypted) as T;
 }
 
+async function publicPlayableUrl(id: string, context: ProviderContext) {
+  const data = await getJson<NeteasePublicUrlResponse>(
+    context.fetch,
+    `https://api.no0a.cn/api/cloudmusic/url/${encodeURIComponent(id)}`,
+  ).catch(() => null);
+  const url = data?.status === 1 ? data.musicurl : undefined;
+  return url?.replace(/^http:\/\//, "https://") ?? null;
+}
+
 export const neteaseProvider: MusicProvider = {
   source: "netease",
 
@@ -162,10 +176,11 @@ export const neteaseProvider: MusicProvider = {
       },
     ).catch(() => null);
 
+    const fallbackUrl = await publicPlayableUrl(id, context);
     return {
       source: "netease",
-      url: eapiData?.data?.[0]?.url ?? null,
-      quality: eapiData?.data?.[0]?.url ? "eapi" : undefined,
+      url: eapiData?.data?.[0]?.url ?? fallbackUrl,
+      quality: eapiData?.data?.[0]?.url ? "eapi" : fallbackUrl ? "public" : undefined,
     };
   },
 
