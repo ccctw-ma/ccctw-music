@@ -111,7 +111,7 @@ test("searches, organizes library, controls queue, and displays lyrics", async (
 
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "今天想听什么？" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "我喜欢的音乐" })).toBeVisible();
   await expect(page.getByText("新歌速递")).toBeVisible();
   await expect(page.getByText("华语夜航")).toBeVisible();
   await expect(page.getByRole("region", { name: "Library" })).toBeVisible();

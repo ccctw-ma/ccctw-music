@@ -2,20 +2,28 @@ import type { LyricLine, Song } from "@ccctw-music/core";
 import { createMusicApiClient } from "@ccctw-music/api-client";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Clock3,
+  Compass,
   Disc3,
+  Download,
   Heart,
+  Home,
   Library,
   ListMusic,
   Loader2,
+  Mic2,
+  MoreHorizontal,
   Pause,
   Play,
   Plus,
+  Radio,
+  Repeat2,
   Search,
+  Shuffle,
   SkipBack,
   SkipForward,
   Trash2,
   Volume2,
-  Waves,
 } from "lucide-react";
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { Badge, Button, Card, Input, Slider } from "./components/ui";
@@ -276,6 +284,10 @@ export function App() {
     );
   }
 
+  const currentCover = current?.coverUrl || featuredSongs[0]?.coverUrl || "/favicon.svg";
+  const progressPercent = duration ? Math.min(100, (currentTime / duration) * 100) : isPlaying ? 12 : 0;
+  const heroSong = current ?? featuredSongs[0];
+
   return (
     <main className="music-app" data-testid="ui-style-root">
       <div className="aurora aurora-a" />
@@ -303,22 +315,48 @@ export function App() {
 
       <aside className="side-rail" aria-label="主导航">
         <a className="brand-mark" href="/" aria-label="CCCTW Music 首页">
-          <Waves size={22} />
+          <Disc3 size={21} />
+          <strong>网易云音乐</strong>
         </a>
         <nav className="rail-nav" aria-label="音乐导航">
           <a className="active" href="#discover" aria-label="发现音乐">
-            <Disc3 size={19} />
+            <Home size={18} />
+            <span>推荐</span>
+          </a>
+          <a href="#featured" aria-label="精选音乐">
+            <Compass size={18} />
+            <span>精选</span>
+          </a>
+          <a href="#radio" aria-label="播客">
+            <Radio size={18} />
+            <span>播客</span>
           </a>
           <a href="#library" aria-label="音乐库">
-            <Library size={19} />
+            <Library size={18} />
+            <span>我的音乐</span>
           </a>
           <a href="#queue" aria-label="播放队列">
-            <ListMusic size={19} />
+            <ListMusic size={18} />
+            <span>播放列表</span>
           </a>
           <a href="#favorites" aria-label="收藏">
-            <Heart size={19} />
+            <Heart size={18} />
+            <span>收藏</span>
           </a>
         </nav>
+        <section className="sidebar-section" aria-label="我的">
+          <span>我的</span>
+          <a className="sidebar-pill active" href="#favorites">
+            <Heart size={15} />
+            <strong>我喜欢的音乐</strong>
+            <small>{favorites.length}</small>
+          </a>
+          <a className="sidebar-pill" href="#library">
+            <Clock3 size={15} />
+            <strong>最近播放</strong>
+            <small>{recentlyPlayed.length}</small>
+          </a>
+        </section>
       </aside>
 
       <section className="studio-shell">
@@ -368,12 +406,17 @@ export function App() {
               aria-label="Now Playing"
             >
               <div className="cover-orbit">
-                <img src={current?.coverUrl || featuredSongs[0]?.coverUrl || "/favicon.svg"} {...coverProps(270)} />
+                <img src={currentCover} {...coverProps(270)} />
               </div>
               <div className="now-copy">
                 <span className="section-kicker">Now Playing</span>
-                <h2>{current?.name ?? featuredSongs[0]?.name ?? "从搜索结果里选择一首歌"}</h2>
-                <p>{current ? currentArtists : "搜索歌曲或歌手，点击结果后会直接请求音源并启动播放器。"}</p>
+                <h1>我喜欢的音乐</h1>
+                <h2>{heroSong?.name ?? "从搜索结果里选择一首歌"}</h2>
+                <p>
+                  {heroSong
+                    ? `${artists(heroSong)} · ${sourceName(heroSong.source)}`
+                    : "搜索歌曲或歌手，点击结果后会直接请求音源并启动播放器。"}
+                </p>
                 {playbackError ? <strong className="playback-error">{playbackError}</strong> : null}
                 <div className="quick-actions">
                   <Button
@@ -394,6 +437,10 @@ export function App() {
                     {loadingSongId ? "加载中…" : isPlaying ? "暂停" : "播放"}
                   </Button>
                   {current ? renderSongActions(current) : null}
+                  <Button className="secondary-action" variant="ghost" shadcnName="download" type="button">
+                    <Download size={16} />
+                    下载
+                  </Button>
                   <span>{current ? sourceName(current.source) : `${songs.length} 首结果`}</span>
                 </div>
               </div>
@@ -445,7 +492,14 @@ export function App() {
               </div>
               {searchQuery.isError ? <strong className="playback-error">搜索暂时不可用，请稍后再试。</strong> : null}
 
-              <div className="song-list">
+              <div className="song-table-head" role="row">
+                <span>#</span>
+                <span>标题</span>
+                <span>专辑</span>
+                <span>喜欢</span>
+                <span>时长</span>
+              </div>
+              <div className="song-list" role="table" aria-label="歌曲列表">
                 {songs.map((song, index) => {
                   const key = songKey(song);
                   const selected = currentKey === key;
@@ -454,7 +508,7 @@ export function App() {
                     <div
                       className={`song-row${selected ? " active" : ""}`}
                       key={key}
-                      role="group"
+                      role="row"
                       aria-label={`${song.name} ${artists(song)}`}
                     >
                       <Button
@@ -479,7 +533,9 @@ export function App() {
                         </span>
                         <span className="sr-only">播放 {song.name}</span>
                       </Button>
+                      <span className="song-album">{song.album?.name ?? "未知专辑"}</span>
                       {renderSongActions(song)}
+                      <span className="song-duration">{formatTime(song.duration)}</span>
                     </div>
                   );
                 })}
@@ -497,7 +553,7 @@ export function App() {
           <aside className="right-stack">
             <Card className="player-panel" shadcnName="player" aria-label="Player">
               <div className="player-cover">
-                <img className="cover" src={current?.coverUrl || "/favicon.svg"} {...coverProps(420)} />
+                <img className="cover" src={current?.coverUrl || currentCover} {...coverProps(420)} />
                 <span className={isPlaying ? "pulse-dot active" : "pulse-dot"} />
               </div>
               <span className="section-kicker">{sourceName(current?.source)}</span>
@@ -690,22 +746,74 @@ export function App() {
       </section>
 
       <Card as="footer" className="mini-player" shadcnName="mini-player" aria-label="底部播放器">
-        <img src={current?.coverUrl || "/favicon.svg"} {...coverProps(56)} />
-        <div>
-          <strong>{current?.name ?? "选择歌曲"}</strong>
-          <span>{currentArtists}</span>
+        <div className="bar-song">
+          <img src={current?.coverUrl || currentCover} {...coverProps(56)} />
+          <div>
+            <strong>{current?.name ?? "选择歌曲"}</strong>
+            <span>{currentArtists}</span>
+          </div>
+          <Button
+            className={current && isFavorite(current) ? "bar-like active" : "bar-like"}
+            type="button"
+            variant="icon"
+            shadcnName="mini-like"
+            aria-label={current ? `${isFavorite(current) ? "取消收藏" : "收藏"} ${current.name}` : "收藏当前歌曲"}
+            disabled={!current}
+            onClick={() => current && toggleFavorite(current)}
+          >
+            <Heart size={18} />
+          </Button>
         </div>
-        <Button
-          type="button"
-          variant="primary"
-          shadcnName="mini-player-play"
-          aria-label={`迷你播放器${isPlaying ? "暂停" : "播放"}`}
-          onClick={handleTogglePlayback}
-          disabled={!current || Boolean(loadingSongId)}
-        >
-          {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-          <span>{isPlaying ? "暂停" : "播放"}</span>
-        </Button>
+        <div className="bar-center">
+          <div className="bar-controls">
+            <Shuffle size={17} />
+            <Button
+              variant="icon"
+              shadcnName="mini-prev"
+              type="button"
+              aria-label="底部切上一曲"
+              disabled={!current}
+              onClick={() => void handleSkip("previous")}
+            >
+              <SkipBack size={20} />
+            </Button>
+            <Button
+              className="mini-play-round"
+              type="button"
+              variant="primary"
+              shadcnName="mini-player-play"
+              aria-label={`迷你播放器${isPlaying ? "暂停" : "播放"}`}
+              onClick={handleTogglePlayback}
+              disabled={!current || Boolean(loadingSongId)}
+            >
+              {isPlaying ? <Pause size={19} /> : <Play size={19} />}
+            </Button>
+            <Button
+              variant="icon"
+              shadcnName="mini-next"
+              type="button"
+              aria-label="底部切下一曲"
+              disabled={!current}
+              onClick={() => void handleSkip("next")}
+            >
+              <SkipForward size={20} />
+            </Button>
+            <Repeat2 size={17} />
+          </div>
+          <div className="bar-progress">
+            <span>{formatTime(currentTime)}</span>
+            <div className="progress-shell">
+              <span style={{ width: `${progressPercent}%` }} />
+            </div>
+            <span>{formatTime(duration)}</span>
+          </div>
+        </div>
+        <div className="bar-tools">
+          <Mic2 size={18} />
+          <ListMusic size={18} />
+          <Volume2 size={18} />
+          <MoreHorizontal size={18} />
+        </div>
       </Card>
     </main>
   );
