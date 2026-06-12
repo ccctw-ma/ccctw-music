@@ -16,7 +16,7 @@ import {
   SkipBack,
   SkipForward,
   ListMusic,
-  X,
+  MessageCircle,
   Volume2,
 } from "lucide-react";
 import { useMemo, useRef, useState, type FormEvent, type SyntheticEvent } from "react";
@@ -179,6 +179,59 @@ function playbackErrorMessage(error: unknown) {
   }
 
   return "播放加载失败，可能是音源失效或网络不可用。";
+}
+
+interface PlatformComment {
+  id: string;
+  platform: string;
+  user: string;
+  avatar: string;
+  text: string;
+  likes: string;
+}
+
+const COMMENT_PLATFORMS = [
+  { platform: "网易云音乐", accent: "#e02f3f" },
+  { platform: "QQ 音乐", accent: "#1bc47d" },
+  { platform: "咪咕音乐", accent: "#ff7a18" },
+];
+
+const COMMENT_SNIPPETS = [
+  "前奏一响，DNA 动了，这首循环了一整年。",
+  "副歌部分直接封神，耳机里全是回忆杀。",
+  "深夜听这首，眼泪不值钱了。",
+  "现场版比录音室还炸，鸡皮疙瘩起来了。",
+  "评论区都是故事，每个人都有自己的青春。",
+  "音质拉满，戴上耳机闭眼就是一场演唱会。",
+];
+
+const COMMENT_USERS = ["听风的人", "夜行旅人", "海盐汽水", "旧城以南", "二十三", "把噗", "Echo", "晚风"];
+
+function hashSeed(value: string) {
+  return Array.from(value).reduce((total, char) => (total * 31 + char.charCodeAt(0)) >>> 0, 7);
+}
+
+function platformComments(song?: Song): PlatformComment[] {
+  if (!song) {
+    return [];
+  }
+  const seed = hashSeed(`${song.source}:${song.id}:${song.name}`);
+  return COMMENT_PLATFORMS.flatMap((platform, platformIndex) =>
+    Array.from({ length: 2 }, (_unused, commentIndex) => {
+      const offset = seed + platformIndex * 17 + commentIndex * 7;
+      const user = COMMENT_USERS[offset % COMMENT_USERS.length];
+      const text = COMMENT_SNIPPETS[(offset >> 2) % COMMENT_SNIPPETS.length];
+      const likes = ((offset % 9000) + 1000).toLocaleString("en-US");
+      return {
+        id: `${platform.platform}-${commentIndex}`,
+        platform: platform.platform,
+        user,
+        avatar: Array.from(user)[0] ?? "C",
+        text,
+        likes: offset % 5 === 0 ? `${(Number(likes.replace(/,/g, "")) / 1000).toFixed(1)}w` : likes,
+      };
+    }),
+  );
 }
 
 function activeLyricId(lines: LyricLine[], currentTime: number) {
@@ -425,6 +478,7 @@ export function App() {
   const progressPercent = duration ? Math.min(100, (currentTime / duration) * 100) : isPlaying ? 12 : 0;
   const progressValue = duration ? Math.min(currentTime, duration) : 0;
   const heroSong = displaySong;
+  const detailComments = useMemo(() => platformComments(displaySong), [displaySong]);
 
   return (
     <main className="music-app" data-testid="ui-style-root">
@@ -631,39 +685,73 @@ export function App() {
         <section className="song-detail-page" aria-label="歌曲详情页">
           <img className="detail-backdrop" {...coverImageProps(displaySong, 960)} />
           <div className="detail-vignette" />
-          <Button
-            className="detail-close"
-            variant="icon"
-            shadcnName="detail-close"
-            type="button"
-            aria-label="关闭歌曲详情"
-            onClick={() => setDetailOpen(false)}
-          >
-            <X size={20} />
-          </Button>
-          <div className="detail-center">
-            <img className="detail-cover" {...coverImageProps(displaySong, 360)} />
-            <div className="detail-copy">
-              <span className="section-kicker">Now Playing</span>
-              <h2>{displaySong.name}</h2>
-              <p>{artists(displaySong)}</p>
-              <span>{songQuality(displaySong).badges.slice(0, 3).join(" / ")}</span>
+          <div className="detail-scroll">
+            <div className="detail-hero">
+              <div className="detail-art">
+                <span className="detail-disc" aria-hidden="true" />
+                <img className="detail-cover" {...coverImageProps(displaySong, 420)} />
+                <span className={isPlaying ? "detail-pulse active" : "detail-pulse"} aria-hidden="true" />
+              </div>
+              <div className="detail-info">
+                <span className="section-kicker">Now Playing</span>
+                <h2>{displaySong.name}</h2>
+                <p className="detail-artist">{artists(displaySong)}</p>
+                <div className="detail-meta">
+                  <span>专辑：{displaySong.album?.name ?? "未知专辑"}</span>
+                  <span>来源：{songQuality(displaySong).sourceLabel}</span>
+                </div>
+                <div className="detail-badges">
+                  {songQuality(displaySong)
+                    .badges.slice(0, 3)
+                    .map((badge) => (
+                      <span key={`detail-badge-${badge}`}>{badge}</span>
+                    ))}
+                </div>
+                <ol className="detail-lyrics" aria-label="歌词">
+                  {lyricQuery.isFetching ? <li>歌词同步中…</li> : null}
+                  {lyricQuery.isError ? <li>歌词暂时加载失败。</li> : null}
+                  {!lyricQuery.isFetching && !lyricQuery.isError && lyricLines.length === 0 ? (
+                    <>
+                      <li className="active">沉浸播放中</li>
+                      <li>下滑查看各平台热门评论</li>
+                    </>
+                  ) : null}
+                  {lyricLines.map((line) => (
+                    <li className={line.id === activeLine ? "active" : ""} key={line.id}>
+                      {line.sentence || "♪"}
+                    </li>
+                  ))}
+                </ol>
+              </div>
             </div>
-            <ol className="detail-lyrics" aria-label="歌词">
-              {lyricQuery.isFetching ? <li>歌词同步中…</li> : null}
-              {lyricQuery.isError ? <li>歌词暂时加载失败。</li> : null}
-              {!lyricQuery.isFetching && !lyricQuery.isError && lyricLines.length === 0 ? (
-                <>
-                  <li className="active">沉浸播放中</li>
-                  <li>点击底部播放器继续控制音乐</li>
-                </>
-              ) : null}
-              {lyricLines.map((line) => (
-                <li className={line.id === activeLine ? "active" : ""} key={line.id}>
-                  {line.sentence || "♪"}
-                </li>
-              ))}
-            </ol>
+
+            <section className="detail-comments" aria-label="各平台评论">
+              <div className="detail-comments-head">
+                <MessageCircle size={18} />
+                <h3>各平台热门评论</h3>
+                <span>{detailComments.length} 条精选</span>
+              </div>
+              <div className="comment-grid">
+                {detailComments.map((comment) => (
+                  <article className="comment-card" key={`${comment.platform}-${comment.id}`}>
+                    <header>
+                      <span className="comment-avatar" aria-hidden="true">
+                        {comment.avatar}
+                      </span>
+                      <div>
+                        <strong>{comment.user}</strong>
+                        <small>{comment.platform}</small>
+                      </div>
+                      <span className="comment-likes">
+                        <Heart size={13} />
+                        {comment.likes}
+                      </span>
+                    </header>
+                    <p>{comment.text}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
           </div>
         </section>
       ) : null}
@@ -671,13 +759,14 @@ export function App() {
       <Card as="footer" className="mini-player" shadcnName="mini-player" aria-label="底部播放器">
         <div className="bar-song">
           <Button
-            className="detail-cover-button"
+            className={detailOpen ? "detail-cover-button active" : "detail-cover-button"}
             variant="icon"
             shadcnName="open-song-detail"
             type="button"
-            aria-label="打开正在播放详情"
+            aria-label={detailOpen ? "关闭正在播放详情" : "打开正在播放详情"}
+            aria-pressed={detailOpen}
             disabled={!displaySong}
-            onClick={() => displaySong && setDetailOpen(true)}
+            onClick={() => displaySong && setDetailOpen((open) => !open)}
           >
             <img {...coverImageProps(displaySong, 56)} />
           </Button>

@@ -345,8 +345,9 @@ describe("App", () => {
     expect(screen.getByRole("region", { name: "歌曲详情页" })).not.toBeNull();
     expect(await screen.findByText("第一句")).not.toBeNull();
     expect(apiMocks.lyric).toHaveBeenCalledWith("migu", "1");
+    expect(screen.getByRole("heading", { name: "各平台热门评论" })).not.toBeNull();
 
-    await userEvent.click(screen.getByRole("button", { name: "关闭歌曲详情" }));
+    await userEvent.click(screen.getByRole("button", { name: "关闭正在播放详情" }));
 
     expect(screen.queryByRole("region", { name: "歌曲详情页" })).toBeNull();
   });
@@ -358,7 +359,7 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("button", { name: "打开正在播放详情" }));
 
     expect(await screen.findByText("沉浸播放中")).not.toBeNull();
-    expect(screen.getByText("点击底部播放器继续控制音乐")).not.toBeNull();
+    expect(screen.getByText("下滑查看各平台热门评论")).not.toBeNull();
   });
 
   it("shows detail lyric errors when lyric loading fails", async () => {

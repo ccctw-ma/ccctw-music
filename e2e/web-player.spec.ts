@@ -161,8 +161,10 @@ test("searches, plays music, screenshots each compact page state", async ({ page
   await page.getByRole("button", { name: "打开正在播放详情" }).click();
   await expect(page.getByRole("region", { name: "歌曲详情页" })).toBeVisible();
   await expect(page.getByText("第一句")).toBeVisible();
-  await page.screenshot({ path: "test-results/page-song-detail.png", fullPage: true });
-  await page.getByRole("button", { name: "关闭歌曲详情" }).click();
+  await expect(page.getByRole("heading", { name: "各平台热门评论" })).toBeVisible();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: "test-results/page-song-detail.png" });
+  await page.getByRole("button", { name: "关闭正在播放详情" }).click();
   await expect(page.getByRole("region", { name: "歌曲详情页" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "收藏 晴天" }).first().click();
