@@ -1,5 +1,5 @@
 /**
- * EdgeOne Pages Function - API v1 catch-all proxy.
+ * EdgeOne Edge Function - API v1 catch-all proxy.
  *
  * Domestic EdgeOne traffic keeps the same /v1/* paths and proxies them to the
  * unified Cloudflare Worker backend, where KV/D1/R2 remain the source of truth.
@@ -12,6 +12,6 @@ interface EdgeOneContext {
   env: Env;
 }
 
-export function onRequest(context: EdgeOneContext) {
+export default function onRequest(context: EdgeOneContext) {
   return edgeoneEntry.fetch(context.request, context.env);
 }

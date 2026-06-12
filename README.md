@@ -113,7 +113,7 @@ pnpm quality
 - Cloudflare Web 静态资源：`apps/web/dist` 通过 `apps/server/wrangler.toml` 的 `[assets]` 配置随 Worker 一起发布。
 - `music.ccctw.com` 的 Cloudflare Worker 自定义域名在控制台维护，CI 只更新 Worker，不在 `wrangler.toml` 中管理 routes。
 - EdgeOne Web 静态资源：根目录 `edgeone.json` 使用顶层 `buildCommand`、`installCommand`、`outputDirectory` 配置，构建命令为 `pnpm --filter @ccctw-music/web build`，输出目录为 `apps/web/dist`。
-- EdgeOne 函数入口：仓库根目录 `functions/` 覆盖 `/health`、`/v1/*` 和兼容的 `/api/*` 代理路径。
+- EdgeOne 函数入口：仓库根目录 `edge-functions/` 覆盖 `/health`、`/v1/*` 和兼容的 `/api/*` 代理路径，避免落到 Node 云函数导致代理超时。
 - 统一数据层：Cache、DB、对象存储统一由 Cloudflare Worker 访问和维护，当前使用 Cloudflare KV/D1/R2；EdgeOne 不绑定独立 KV/DB/COS，避免国内外数据分裂。
 - EdgeOne API 代理目标由 `UNIFIED_API_BASE_URL` 配置，默认指向 `https://ccctw-music-api.1934202608.workers.dev`，用于避免同域 DNS 分流下的代理回环。
 - Cloudflare CI 流程：提交到 `main` -> Quality Gate -> Build Web -> Deploy Worker -> Verify live playback。
