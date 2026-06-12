@@ -337,6 +337,39 @@ describe("App", () => {
     expect(mediaMocks.pause).toHaveBeenCalled();
   });
 
+  it("opens an immersive detail page from the currently playing cover", async () => {
+    await selectFirstSong();
+
+    await userEvent.click(screen.getByRole("button", { name: "打开正在播放详情" }));
+
+    expect(screen.getByRole("region", { name: "歌曲详情页" })).not.toBeNull();
+    expect(await screen.findByText("第一句")).not.toBeNull();
+    expect(apiMocks.lyric).toHaveBeenCalledWith("migu", "1");
+
+    await userEvent.click(screen.getByRole("button", { name: "关闭歌曲详情" }));
+
+    expect(screen.queryByRole("region", { name: "歌曲详情页" })).toBeNull();
+  });
+
+  it("shows detail fallback copy when lyrics are empty", async () => {
+    apiMocks.lyric.mockResolvedValueOnce({ type: 1, raw: "", lines: [] });
+    await selectFirstSong();
+
+    await userEvent.click(screen.getByRole("button", { name: "打开正在播放详情" }));
+
+    expect(await screen.findByText("沉浸播放中")).not.toBeNull();
+    expect(screen.getByText("点击底部播放器继续控制音乐")).not.toBeNull();
+  });
+
+  it("shows detail lyric errors when lyric loading fails", async () => {
+    apiMocks.lyric.mockRejectedValueOnce(new Error("lyric down"));
+    await selectFirstSong();
+
+    await userEvent.click(screen.getByRole("button", { name: "打开正在播放详情" }));
+
+    expect(await screen.findByText("歌词暂时加载失败。")).not.toBeNull();
+  });
+
   it("favorites a song from the compact controls", async () => {
     await selectFirstSong();
 

@@ -1,4 +1,4 @@
-import type { Song } from "@ccctw-music/core";
+import type { LyricLine, Song } from "@ccctw-music/core";
 import type { MusicSource, SearchResult } from "@ccctw-music/core";
 import { createMusicApiClient } from "@ccctw-music/api-client";
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +16,7 @@ import {
   SkipBack,
   SkipForward,
   ListMusic,
+  X,
   Volume2,
 } from "lucide-react";
 import { useMemo, useRef, useState, type FormEvent, type SyntheticEvent } from "react";
@@ -180,12 +181,26 @@ function playbackErrorMessage(error: unknown) {
   return "播放加载失败，可能是音源失效或网络不可用。";
 }
 
+function activeLyricId(lines: LyricLine[], currentTime: number) {
+  let active = lines.find((line) => line.timeStamp !== undefined)?.id;
+  for (const line of lines) {
+    if (line.timeStamp === undefined) {
+      continue;
+    }
+    if (line.timeStamp <= currentTime) {
+      active = line.id;
+    }
+  }
+  return active;
+}
+
 export function App() {
   const [keyword, setKeyword] = useState("周杰伦");
   const [submittedKeyword, setSubmittedKeyword] = useState("周杰伦");
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [loadingSongId, setLoadingSongId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const {
@@ -222,6 +237,17 @@ export function App() {
   const featuredSongs = useMemo(() => songs.slice(0, 6), [songs]);
   const currentArtists = artists(current);
   const currentKey = current ? songKey(current) : undefined;
+
+  const lyricQuery = useQuery({
+    queryKey: ["lyric", current?.source, current?.id],
+    queryFn: () => apiClient.lyric(current!.source, current!.id),
+    enabled: Boolean(detailOpen && current && !current.lyric),
+    retry: false,
+  });
+
+  const lyric = current?.lyric ?? lyricQuery.data;
+  const lyricLines = lyric?.lines ?? [];
+  const activeLine = activeLyricId(lyricLines, currentTime);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -601,9 +627,60 @@ export function App() {
         </section>
       </section>
 
+      {detailOpen && displaySong ? (
+        <section className="song-detail-page" aria-label="歌曲详情页">
+          <img className="detail-backdrop" {...coverImageProps(displaySong, 960)} />
+          <div className="detail-vignette" />
+          <Button
+            className="detail-close"
+            variant="icon"
+            shadcnName="detail-close"
+            type="button"
+            aria-label="关闭歌曲详情"
+            onClick={() => setDetailOpen(false)}
+          >
+            <X size={20} />
+          </Button>
+          <div className="detail-center">
+            <img className="detail-cover" {...coverImageProps(displaySong, 360)} />
+            <div className="detail-copy">
+              <span className="section-kicker">Now Playing</span>
+              <h2>{displaySong.name}</h2>
+              <p>{artists(displaySong)}</p>
+              <span>{songQuality(displaySong).badges.slice(0, 3).join(" / ")}</span>
+            </div>
+            <ol className="detail-lyrics" aria-label="歌词">
+              {lyricQuery.isFetching ? <li>歌词同步中…</li> : null}
+              {lyricQuery.isError ? <li>歌词暂时加载失败。</li> : null}
+              {!lyricQuery.isFetching && !lyricQuery.isError && lyricLines.length === 0 ? (
+                <>
+                  <li className="active">沉浸播放中</li>
+                  <li>点击底部播放器继续控制音乐</li>
+                </>
+              ) : null}
+              {lyricLines.map((line) => (
+                <li className={line.id === activeLine ? "active" : ""} key={line.id}>
+                  {line.sentence || "♪"}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      ) : null}
+
       <Card as="footer" className="mini-player" shadcnName="mini-player" aria-label="底部播放器">
         <div className="bar-song">
-          <img {...coverImageProps(displaySong, 56)} />
+          <Button
+            className="detail-cover-button"
+            variant="icon"
+            shadcnName="open-song-detail"
+            type="button"
+            aria-label="打开正在播放详情"
+            disabled={!displaySong}
+            onClick={() => displaySong && setDetailOpen(true)}
+          >
+            <img {...coverImageProps(displaySong, 56)} />
+          </Button>
           <div>
             <strong>{current?.name ?? "选择歌曲"}</strong>
             <span>{currentArtists}</span>
