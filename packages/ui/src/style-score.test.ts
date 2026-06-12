@@ -4,11 +4,8 @@ import { scoreUiSnapshot, type UiStyleSnapshot } from "./style-score";
 const completeMusicSnapshot: UiStyleSnapshot = {
   features: {
     search: true,
-    library: true,
-    queue: true,
-    favorites: true,
-    playlists: true,
-    lyrics: true,
+    results: true,
+    nowPlaying: true,
     player: true,
   },
   visual: {
@@ -92,8 +89,8 @@ describe("scoreUiSnapshot", () => {
       visual: {
         background: "rgb(240 249 255)",
         accentColors: ["rgb(0 0 0)", "rgb(255 255 255)", "rgb(14 165 233)", "rgb(56 189 248)"],
-        fontFamilies: ["Righteous", "Poppins", "Avenir Next"],
-        hasAtmosphere: true,
+        fontFamilies: ["Inter", "Arial", "system-ui"],
+        hasAtmosphere: false,
         hasGenericPurpleGradient: false,
       },
     });
@@ -125,15 +122,14 @@ describe("scoreUiSnapshot", () => {
       ...completeMusicSnapshot,
       features: {
         ...completeMusicSnapshot.features,
-        lyrics: false,
-        queue: false,
-        favorites: false,
+        results: false,
+        nowPlaying: false,
       },
     });
 
     expect(score.total).toBeLessThanOrEqual(90);
     expect(score.passed).toBe(false);
-    expect(score.notes).toContain("Missing required first-version music features: queue, favorites, lyrics.");
+    expect(score.notes).toContain("Missing required first-version music features: results, nowPlaying.");
   });
 
   it("notes responsive and generic failures when no other note is available", () => {

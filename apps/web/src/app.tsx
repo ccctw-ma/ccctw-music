@@ -1,30 +1,25 @@
-import type { LyricLine, Song } from "@ccctw-music/core";
+import type { Song } from "@ccctw-music/core";
 import type { MusicSource, SearchResult } from "@ccctw-music/core";
 import { createMusicApiClient } from "@ccctw-music/api-client";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Clock3,
-  Download,
   Heart,
   Home,
-  Library,
-  ListMusic,
   Loader2,
   Mic2,
   MoreHorizontal,
   Pause,
   Play,
-  Plus,
   Repeat2,
   Search,
   Shuffle,
   SkipBack,
   SkipForward,
-  Trash2,
+  ListMusic,
   Volume2,
 } from "lucide-react";
 import { useMemo, useRef, useState, type FormEvent, type SyntheticEvent } from "react";
-import { Badge, Button, Card, Input, Slider } from "./components/ui";
+import { Button, Card, Input, Slider } from "./components/ui";
 import { resolveDirectPlayableUrl, searchDirectMusic } from "./lib/direct-music-search";
 import { songKey, usePlayerStore } from "./stores/player-store";
 
@@ -33,7 +28,6 @@ const apiClient = createMusicApiClient({
 });
 
 const SOURCES = ["migu", "netease", "qq"] as const;
-const STUDIO_MIX_ID = "studio-mix";
 
 function bestScore(result: SearchResult) {
   return result.songs[0]?.quality?.score ?? 0;
@@ -186,19 +180,6 @@ function playbackErrorMessage(error: unknown) {
   return "播放加载失败，可能是音源失效或网络不可用。";
 }
 
-function activeLyricId(lines: LyricLine[], currentTime: number) {
-  let active = lines.find((line) => line.timeStamp !== undefined)?.id;
-  for (const line of lines) {
-    if (line.timeStamp === undefined) {
-      continue;
-    }
-    if (line.timeStamp <= currentTime) {
-      active = line.id;
-    }
-  }
-  return active;
-}
-
 export function App() {
   const [keyword, setKeyword] = useState("周杰伦");
   const [submittedKeyword, setSubmittedKeyword] = useState("周杰伦");
@@ -210,24 +191,17 @@ export function App() {
   const {
     current,
     queue,
-    recentlyPlayed,
-    favorites,
-    playlists,
     isPlaying,
     duration,
     currentTime,
-    volume,
     play,
     pause,
     loadQueue,
-    removeFromQueue,
     playNext,
     playPrevious,
     toggleFavorite,
     isFavorite,
-    addToPlaylist,
     setProgress,
-    setVolume,
   } = usePlayerStore();
 
   const searchQuery = useQuery({
@@ -248,18 +222,6 @@ export function App() {
   const featuredSongs = useMemo(() => songs.slice(0, 6), [songs]);
   const currentArtists = artists(current);
   const currentKey = current ? songKey(current) : undefined;
-  const currentPlaylist = playlists.find((playlist) => playlist.id === STUDIO_MIX_ID);
-
-  const lyricQuery = useQuery({
-    queryKey: ["lyric", current?.source, current?.id],
-    queryFn: () => apiClient.lyric(current!.source, current!.id),
-    enabled: Boolean(current && !current.lyric),
-    retry: false,
-  });
-
-  const lyric = current?.lyric ?? lyricQuery.data;
-  const lyricLines = lyric?.lines ?? [];
-  const activeLine = activeLyricId(lyricLines, currentTime);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -392,13 +354,6 @@ export function App() {
     setProgress(audio.currentTime, audio.duration || duration);
   }
 
-  function handleVolume(value: number) {
-    setVolume(value);
-    if (audioRef.current) {
-      audioRef.current.volume = value;
-    }
-  }
-
   function handleSeek(value: number) {
     if (!duration || !audioRef.current) {
       return;
@@ -424,19 +379,6 @@ export function App() {
           }}
         >
           <Heart size={15} />
-        </Button>
-        <Button
-          className="icon-action"
-          variant="icon"
-          shadcnName={`studio-mix-${songKey(song)}`}
-          type="button"
-          aria-label={`加入 Studio Mix ${song.name}`}
-          onClick={(event) => {
-            event.stopPropagation();
-            addToPlaylist(STUDIO_MIX_ID, song);
-          }}
-        >
-          <Plus size={15} />
         </Button>
       </span>
     );
@@ -493,32 +435,7 @@ export function App() {
             <Home size={18} />
             <span>推荐</span>
           </a>
-          <a href="#library" aria-label="音乐库">
-            <Library size={18} />
-            <span>我的音乐</span>
-          </a>
-          <a href="#queue" aria-label="播放队列">
-            <ListMusic size={18} />
-            <span>播放列表</span>
-          </a>
-          <a href="#favorites" aria-label="收藏">
-            <Heart size={18} />
-            <span>收藏</span>
-          </a>
         </nav>
-        <section className="sidebar-section" aria-label="我的">
-          <span>我的</span>
-          <a className="sidebar-pill active" href="#favorites">
-            <Heart size={15} />
-            <strong>我喜欢的音乐</strong>
-            <small>{favorites.length}</small>
-          </a>
-          <a className="sidebar-pill" href="#library">
-            <Clock3 size={15} />
-            <strong>最近播放</strong>
-            <small>{recentlyPlayed.length}</small>
-          </a>
-        </section>
       </aside>
 
       <section className="studio-shell">
@@ -526,7 +443,7 @@ export function App() {
           <div>
             <span className="brand-text">CCCTW Music</span>
             <h1>今天想听什么？</h1>
-            <p>搜索、收藏、排队、跟唱，把每一次播放组织成你的午夜音乐工作台。</p>
+            <p>搜索歌曲、直接播放，用更轻量的界面把注意力留给音乐本身。</p>
           </div>
           <form className="search-box" role="search" aria-label="音乐搜索" onSubmit={handleSubmit}>
             <Search size={18} />
@@ -599,10 +516,6 @@ export function App() {
                     {loadingSongId ? "加载中…" : isPlaying ? "暂停" : "播放"}
                   </Button>
                   {current ? renderSongActions(current) : null}
-                  <Button className="secondary-action" variant="ghost" shadcnName="download" type="button">
-                    <Download size={16} />
-                    下载
-                  </Button>
                   <span>
                     {current ? songQuality(current).badges.slice(0, 2).join(" / ") : `${songs.length} 首结果`}
                   </span>
@@ -685,210 +598,6 @@ export function App() {
               </div>
             </Card>
           </div>
-
-          <aside className="right-stack">
-            <Card className="player-panel" shadcnName="player" aria-label="Player">
-              <div className="player-cover">
-                <img className="cover" {...coverImageProps(displaySong, 420)} />
-                <span className={isPlaying ? "pulse-dot active" : "pulse-dot"} />
-              </div>
-              <span className="section-kicker">{songQuality(current).sourceLabel}</span>
-              <h2>{current?.name ?? "未播放"}</h2>
-              <p>{currentArtists}</p>
-              <div className="progress-control">
-                <Slider
-                  className="progress-slider"
-                  shadcnName="player-progress"
-                  aria-label={`播放进度 ${formatTime(currentTime)} / ${formatTime(duration)}`}
-                  min="0"
-                  max={duration || 0}
-                  step="1"
-                  value={progressValue}
-                  disabled={!current || !duration}
-                  onChange={(event) => handleSeek(Number(event.currentTarget.value))}
-                />
-                <div className="progress-shell" aria-hidden="true">
-                  <span style={{ width: `${duration ? Math.min(100, (currentTime / duration) * 100) : 0}%` }} />
-                </div>
-              </div>
-              <div className="transport">
-                <Button
-                  variant="icon"
-                  shadcnName="previous"
-                  type="button"
-                  aria-label="上一首"
-                  disabled={!current}
-                  onClick={() => void handleSkip("previous")}
-                >
-                  <SkipBack size={18} />
-                </Button>
-                <Button
-                  className="play-button"
-                  variant="primary"
-                  shadcnName="player-play"
-                  type="button"
-                  onClick={handleTogglePlayback}
-                  disabled={!current || Boolean(loadingSongId)}
-                >
-                  {loadingSongId ? (
-                    <Loader2 size={20} className="spin" />
-                  ) : isPlaying ? (
-                    <Pause size={20} />
-                  ) : (
-                    <Play size={20} />
-                  )}
-                  <span>{loadingSongId ? "加载中…" : isPlaying ? "暂停" : "播放"}</span>
-                </Button>
-                <Button
-                  variant="icon"
-                  shadcnName="next"
-                  type="button"
-                  aria-label="下一首"
-                  disabled={!current}
-                  onClick={() => void handleSkip("next")}
-                >
-                  <SkipForward size={18} />
-                </Button>
-              </div>
-              <label className="volume-line">
-                <Volume2 size={16} />
-                <Slider
-                  shadcnName="volume"
-                  aria-label="音量"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={volume}
-                  onChange={(event) => handleVolume(Number(event.currentTarget.value))}
-                />
-              </label>
-            </Card>
-
-            <Card className="library-panel" shadcnName="library" id="library" aria-label="Library">
-              <div className="panel-header compact">
-                <h2>Library</h2>
-                <span>{recentlyPlayed.length} 最近播放</span>
-              </div>
-              <div className="stat-grid">
-                <Badge shadcnName="favorites-count">
-                  <strong>{favorites.length}</strong> Favorites
-                </Badge>
-                <Badge shadcnName="playlists-count">
-                  <strong>{playlists.length}</strong> Playlists
-                </Badge>
-                <Badge shadcnName="queue-count">
-                  <strong>{queue.length}</strong> Queue
-                </Badge>
-              </div>
-              <div className="mini-list">
-                {recentlyPlayed.slice(0, 3).map((song) => (
-                  <Button
-                    key={`recent-${songKey(song)}`}
-                    variant="ghost"
-                    shadcnName={`recent-${songKey(song)}`}
-                    type="button"
-                    onClick={() => void startSong(song, queue.length ? queue : [song])}
-                  >
-                    {song.name}
-                  </Button>
-                ))}
-                {recentlyPlayed.length === 0 ? <p>播放过的歌曲会停靠在这里。</p> : null}
-              </div>
-            </Card>
-
-            <Card className="queue-panel" shadcnName="queue" id="queue" aria-label="Queue">
-              <div className="panel-header compact">
-                <h2>Queue</h2>
-                <span>{queue.length} 首</span>
-              </div>
-              <ol className="queue-list">
-                {queue.map((song) => (
-                  <li className={currentKey === songKey(song) ? "active" : ""} key={`queue-${songKey(song)}`}>
-                    <Button
-                      variant="ghost"
-                      shadcnName={`queue-play-${songKey(song)}`}
-                      type="button"
-                      onClick={() => void startSong(song, queue)}
-                    >
-                      <strong>{song.name}</strong>
-                      <small>{artists(song)}</small>
-                    </Button>
-                    <Button
-                      variant="icon"
-                      shadcnName={`queue-remove-${songKey(song)}`}
-                      type="button"
-                      aria-label={`移出队列 ${song.name}`}
-                      disabled={currentKey === songKey(song)}
-                      onClick={() => removeFromQueue(songKey(song))}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </li>
-                ))}
-              </ol>
-            </Card>
-
-            <Card className="favorites-panel" shadcnName="favorites" id="favorites" aria-label="Favorites">
-              <div className="panel-header compact">
-                <h2>Favorites</h2>
-                <span>{favorites.length} 首</span>
-              </div>
-              <div className="mini-list">
-                {favorites.map((song) => (
-                  <Button
-                    key={`fav-${songKey(song)}`}
-                    variant="ghost"
-                    shadcnName={`favorite-play-${songKey(song)}`}
-                    type="button"
-                    onClick={() => void startSong(song, favorites)}
-                  >
-                    {song.name}
-                  </Button>
-                ))}
-                {favorites.length === 0 ? <p>点击爱心收藏你的第一首歌。</p> : null}
-              </div>
-            </Card>
-
-            <Card className="playlist-panel" shadcnName="studio-mix" aria-label="Studio Mix">
-              <div className="panel-header compact">
-                <h2>Studio Mix</h2>
-                <span>{currentPlaylist?.songs.length ?? 0} 首</span>
-              </div>
-              <div className="mini-list">
-                {currentPlaylist?.songs.map((song) => (
-                  <Button
-                    key={`mix-${songKey(song)}`}
-                    variant="ghost"
-                    shadcnName={`mix-play-${songKey(song)}`}
-                    type="button"
-                    onClick={() => void startSong(song, currentPlaylist.songs)}
-                  >
-                    {song.name}
-                  </Button>
-                )) ?? <p>把歌曲加入 Studio Mix，建立你的第一张歌单。</p>}
-              </div>
-            </Card>
-
-            <Card className="lyrics-panel" shadcnName="lyrics" aria-label="Lyrics">
-              <div className="panel-header compact">
-                <h2>Lyrics</h2>
-                <span>
-                  {lyricQuery.isFetching ? "同步中…" : lyricLines.length ? `${lyricLines.length} 行` : "待播放"}
-                </span>
-              </div>
-              {lyricQuery.isError ? <strong className="playback-error">歌词暂时加载失败。</strong> : null}
-              <ol className="lyric-list">
-                {lyricLines.map((line) => (
-                  <li className={line.id === activeLine ? "active" : ""} key={line.id}>
-                    {line.sentence || "♪"}
-                  </li>
-                ))}
-              </ol>
-              {!lyricQuery.isFetching && !lyricQuery.isError && lyricLines.length === 0 ? (
-                <p>暂无歌词，先选择一首歌。</p>
-              ) : null}
-            </Card>
-          </aside>
         </section>
       </section>
 

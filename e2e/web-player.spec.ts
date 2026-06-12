@@ -122,7 +122,7 @@ async function mockApi(page: Page) {
   };
 }
 
-test("searches, organizes library, controls queue, and displays lyrics", async ({ page }) => {
+test("searches, plays music, screenshots each compact page state", async ({ page }) => {
   await mockAudio(page);
   const apiState = await mockApi(page);
 
@@ -131,9 +131,17 @@ test("searches, organizes library, controls queue, and displays lyrics", async (
   await expect(page.getByRole("heading", { name: "我喜欢的音乐" })).toBeVisible();
   await expect(page.getByText("精选")).toHaveCount(0);
   await expect(page.getByText("播客")).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Library" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Queue" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Lyrics" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Library" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Queue" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Lyrics" })).toHaveCount(0);
+  await expect(page.locator(".right-stack")).toHaveCount(0);
+  await expect(
+    page.locator(".library-panel, .queue-panel, .favorites-panel, .playlist-panel, .lyrics-panel"),
+  ).toHaveCount(0);
+  await expect
+    .poll(async () => Math.round((await page.locator(".now-card").boundingBox())?.height ?? 999))
+    .toBeLessThan(230);
+  await page.screenshot({ path: "test-results/page-home-desktop.png", fullPage: true });
 
   await page.getByPlaceholder("搜索歌曲、歌手或专辑").fill("晴天");
   await page.getByRole("button", { name: "搜索" }).click();
@@ -142,29 +150,21 @@ test("searches, organizes library, controls queue, and displays lyrics", async (
   await expect(songButton).toBeVisible();
   await expect(page.getByText("正版").first()).toBeVisible();
   await expect(page.getByText("免费可播").first()).toBeVisible();
+  await page.screenshot({ path: "test-results/page-search-results.png", fullPage: true });
   await songButton.click();
 
   await expect.poll(apiState.playableUrlRequested).toBe(true);
   await expect(page.getByTestId("audio-player")).toHaveAttribute("src", playableAudioUrl);
   await expect(page.getByRole("button", { name: /暂停/ }).first()).toBeVisible();
-  await expect(page.getByText("第一句")).toBeVisible();
+  await page.screenshot({ path: "test-results/page-playing.png", fullPage: true });
 
   await page.getByRole("button", { name: "收藏 晴天" }).first().click();
-  await expect(page.getByRole("region", { name: "Favorites" }).getByText("晴天")).toBeVisible();
   await expect(page.getByRole("button", { name: "取消收藏 晴天" }).first()).toBeVisible();
 
-  await page.getByRole("button", { name: "加入 Studio Mix 晴天" }).first().click();
-  await expect(page.getByRole("region", { name: "Studio Mix" }).getByText("晴天")).toBeVisible();
-
-  await expect(page.getByRole("region", { name: "Queue" }).getByText("夜曲")).toBeVisible();
-  await page.getByRole("button", { name: "下一首" }).click();
-  await expect(page.getByRole("region", { name: "Player" }).getByRole("heading", { name: "夜曲" })).toBeVisible();
-  await page.getByRole("button", { name: "上一首" }).click();
-  await expect(page.getByRole("region", { name: "Player" }).getByRole("heading", { name: "晴天" })).toBeVisible();
   await page.getByRole("button", { name: "底部切下一曲" }).click();
-  await expect(page.getByRole("region", { name: "Player" }).getByRole("heading", { name: "夜曲" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "夜曲" }).first()).toBeVisible();
   await page.getByRole("button", { name: "底部切上一曲" }).click();
-  await expect(page.getByRole("region", { name: "Player" }).getByRole("heading", { name: "晴天" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "晴天" }).first()).toBeVisible();
 
   await page.evaluate(() => {
     const audio = document.querySelector('[data-testid="audio-player"]') as HTMLAudioElement;
@@ -172,7 +172,6 @@ test("searches, organizes library, controls queue, and displays lyrics", async (
     Object.defineProperty(audio, "duration", { configurable: true, value: 120 });
     audio.dispatchEvent(new Event("timeupdate", { bubbles: true }));
   });
-  await expect(page.locator(".lyric-list li.active", { hasText: "副歌来了" })).toBeVisible();
   await expect(page.getByTestId("shadcn-slider:mini-progress")).toHaveAttribute("aria-label", /0:46 \/ 2:00/);
   await expect(page.getByText("0:46").first()).toBeVisible();
   await page.getByTestId("shadcn-slider:mini-progress").evaluate((element) => {
@@ -186,10 +185,6 @@ test("searches, organizes library, controls queue, and displays lyrics", async (
 
   await page.getByRole("button", { name: "取消收藏 晴天" }).first().click();
   await expect(page.getByRole("button", { name: "收藏 晴天" }).first()).toBeVisible();
-  await page.getByRole("button", { name: "移出队列 夜曲" }).click();
-  await expect(page.getByRole("region", { name: "Queue" }).getByText("夜曲")).toHaveCount(0);
-
-  await page.screenshot({ path: "test-results/music-experience.png", fullPage: true });
 });
 
 test("search empty state and controls remain usable", async ({ page }) => {
@@ -214,6 +209,10 @@ test("mobile layout keeps the mini player usable without horizontal overflow", a
 
   await expect(page.getByLabel("底部播放器")).toBeVisible();
   await expect(page.getByRole("search", { name: "音乐搜索" })).toBeVisible();
+  await expect
+    .poll(async () => Math.round((await page.locator(".now-card").boundingBox())?.height ?? 999))
+    .toBeLessThan(180);
+  await page.screenshot({ path: "test-results/page-home-mobile.png", fullPage: true });
 
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,

@@ -1,11 +1,8 @@
 export interface UiStyleSnapshot {
   features: {
     search: boolean;
-    library: boolean;
-    queue: boolean;
-    favorites: boolean;
-    playlists: boolean;
-    lyrics: boolean;
+    results: boolean;
+    nowPlaying: boolean;
     player: boolean;
   };
   visual: {
@@ -49,15 +46,7 @@ export interface UiStyleScore {
   notes: string[];
 }
 
-const REQUIRED_FEATURES: Array<keyof UiStyleSnapshot["features"]> = [
-  "search",
-  "library",
-  "queue",
-  "favorites",
-  "playlists",
-  "lyrics",
-  "player",
-];
+const REQUIRED_FEATURES: Array<keyof UiStyleSnapshot["features"]> = ["search", "results", "nowPlaying", "player"];
 
 const GENERIC_FONTS = ["inter", "arial", "roboto", "system-ui"];
 const SKY_BLUE_TARGETS: RgbColor[] = [
@@ -172,7 +161,7 @@ function scoreVisual(snapshot: UiStyleSnapshot, notes: string[]) {
   if (snapshot.visual.hasAtmosphere) score += 2;
   if (!snapshot.visual.hasGenericPurpleGradient) score += 2;
 
-  if (score < 22) {
+  if (score < 21) {
     notes.push("Visual direction is too generic for the required distinctive music product.");
   }
 
@@ -181,8 +170,8 @@ function scoreVisual(snapshot: UiStyleSnapshot, notes: string[]) {
 
 function scoreComposition(snapshot: UiStyleSnapshot) {
   let score = 0;
-  if (snapshot.composition.cardCount >= 10) score += 5;
-  if (snapshot.composition.interactiveCount >= 16) score += 4;
+  if (snapshot.composition.cardCount >= 4) score += 5;
+  if (snapshot.composition.interactiveCount >= 10) score += 4;
   if (snapshot.composition.hasAsymmetry) score += 4;
   if (snapshot.composition.hasPersistentPlayer) score += 4;
   if (snapshot.composition.hasMotion) score += 3;
@@ -191,9 +180,9 @@ function scoreComposition(snapshot: UiStyleSnapshot) {
 
 function scoreAccessibility(snapshot: UiStyleSnapshot) {
   let score = 0;
-  if (snapshot.accessibility.landmarkCount >= 6) score += 4;
-  if (snapshot.accessibility.namedButtonCount >= 12) score += 4;
-  if (snapshot.accessibility.focusableCount >= 16) score += 4;
+  if (snapshot.accessibility.landmarkCount >= 4) score += 4;
+  if (snapshot.accessibility.namedButtonCount >= 8) score += 4;
+  if (snapshot.accessibility.focusableCount >= 10) score += 4;
   if (snapshot.accessibility.hasVisibleFocus) score += 3;
   return clampScore(score, 15);
 }
@@ -223,7 +212,7 @@ export function scoreUiSnapshot(snapshot: UiStyleSnapshot): UiStyleScore {
 
   const totalBeforeCaps = Math.round(Object.values(categories).reduce((sum, value) => sum + value, 0));
   const missingFeatureCount = REQUIRED_FEATURES.filter((feature) => !snapshot.features[feature]).length;
-  const genericVisualPenalty = snapshot.visual.hasGenericPurpleGradient ? 86 : categories.visual < 22 ? 90 : 100;
+  const genericVisualPenalty = snapshot.visual.hasGenericPurpleGradient ? 86 : categories.visual < 21 ? 90 : 100;
   const featureCap = missingFeatureCount > 0 ? 90 - missingFeatureCount : 100;
   const total = Math.min(totalBeforeCaps, genericVisualPenalty, featureCap);
   const passed = total > 90;

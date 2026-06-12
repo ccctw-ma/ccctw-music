@@ -95,11 +95,8 @@ async function collectSnapshot(page: Page): Promise<UiStyleSnapshot> {
     return {
       features: {
         search: Boolean(root.querySelector('[role="search"]')),
-        library: text.includes("Library"),
-        queue: text.includes("Queue"),
-        favorites: text.includes("Favorites"),
-        playlists: text.includes("Studio Mix"),
-        lyrics: text.includes("Lyrics"),
+        results: text.includes("搜索结果"),
+        nowPlaying: text.includes("Now Playing"),
         player: text.includes("Now Playing") && Boolean(root.querySelector('[aria-label="底部播放器"]')),
       },
       visual: {
@@ -110,11 +107,11 @@ async function collectSnapshot(page: Page): Promise<UiStyleSnapshot> {
         hasGenericPurpleGradient: /purple|168, 85, 247|139, 92, 246/i.test(root.outerHTML),
       },
       composition: {
-        cardCount: root.querySelectorAll("section, article, aside, .now-card, .player-panel").length,
+        cardCount: root.querySelectorAll("section, article, aside, .now-card, .result-panel").length,
         interactiveCount: root.querySelectorAll("button, input, a").length,
-        hasAsymmetry: Boolean(root.querySelector(".listen-layout, .right-stack")),
+        hasAsymmetry: Boolean(root.querySelector(".listen-layout, .song-table-head")),
         hasPersistentPlayer: Boolean(root.querySelector(".mini-player")),
-        hasMotion: Boolean(root.querySelector(".wave-stack, .pulse-dot, .spin")),
+        hasMotion: Boolean(root.querySelector(".spin, .cover-orbit")),
       },
       accessibility: {
         landmarkCount: regions.length,
@@ -140,7 +137,7 @@ test("UI style score stays above 90 for the music website", async ({ page }) => 
     .getByRole("button", { name: /播放 晴天/ })
     .first()
     .click();
-  await expect(page.getByText("第一句")).toBeVisible();
+  await expect(page.getByTestId("audio-player")).toHaveAttribute("src", /data:audio\/wav/);
 
   const desktopSnapshot = await collectSnapshot(page);
   const desktopScore = scoreUiSnapshot(desktopSnapshot);

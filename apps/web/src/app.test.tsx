@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -148,17 +148,20 @@ async function selectFirstSong() {
 }
 
 describe("App", () => {
-  it("renders search, library, queue, lyrics, and player regions without unused featured or podcast modules", async () => {
+  it("renders a lean search/results/player layout without the removed right-side modules", async () => {
     renderApp();
 
     await screen.findByRole("button", { name: /播放 晴天/ });
     expect(screen.queryByText("精选")).toBeNull();
     expect(screen.queryByText("播客")).toBeNull();
     expect(screen.queryByText("新歌速递")).toBeNull();
+    expect(screen.queryByRole("region", { name: "Library" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Queue" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Lyrics" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Player" })).toBeNull();
     expect(screen.getByRole("search", { name: "音乐搜索" })).not.toBeNull();
-    expect(screen.getByRole("region", { name: "Library" })).not.toBeNull();
-    expect(screen.getByRole("region", { name: "Queue" })).not.toBeNull();
-    expect(screen.getByRole("region", { name: "Lyrics" })).not.toBeNull();
+    expect(screen.getByRole("region", { name: "Search" })).not.toBeNull();
+    expect(screen.getByLabelText("底部播放器")).not.toBeNull();
     expect(screen.getByTestId("ui-style-root")).not.toBeNull();
   });
 
@@ -169,7 +172,7 @@ describe("App", () => {
     expect(screen.getByTestId("shadcn-input:music-search")).toBe(
       screen.getByRole("searchbox", { name: "搜索歌曲、歌手或专辑" }),
     );
-    expect(screen.getAllByTestId(/shadcn-card:/).length).toBeGreaterThanOrEqual(8);
+    expect(screen.getAllByTestId(/shadcn-card:/).length).toBeGreaterThanOrEqual(3);
     expect(screen.getAllByTestId(/shadcn-button:/).length).toBeGreaterThanOrEqual(6);
   });
 
@@ -314,64 +317,51 @@ describe("App", () => {
     expect(await screen.findByText("没找到结果")).not.toBeNull();
   });
 
-  it("selects a song, loads lyrics, and controls playback", async () => {
+  it("shows a search error when the browser-first search pipeline fails", async () => {
+    directMocks.searchDirectMusic.mockRejectedValueOnce(new Error("search down"));
+
+    renderApp();
+
+    expect(await screen.findByText("搜索暂时不可用，请稍后再试。")).not.toBeNull();
+  });
+
+  it("selects a song and controls playback from the bottom player", async () => {
     await selectFirstSong();
 
     expect(mediaMocks.play).toHaveBeenCalled();
     expect(screen.getByTestId("audio-player")).toHaveProperty("src", "https://cdn.example.com/qingtian.mp3");
     expect(screen.getAllByRole("button", { name: /暂停/ })[0]).not.toHaveProperty("disabled", true);
-    expect(await screen.findByText("第一句")).not.toBeNull();
-    expect(apiMocks.lyric).toHaveBeenCalledWith("migu", "1");
+    expect(apiMocks.lyric).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getAllByRole("button", { name: /暂停/ })[0]);
     expect(mediaMocks.pause).toHaveBeenCalled();
   });
 
-  it("favorites a song and adds it to Studio Mix", async () => {
+  it("favorites a song from the compact controls", async () => {
     await selectFirstSong();
 
     await userEvent.click(screen.getAllByRole("button", { name: "收藏 晴天" })[0]);
-    expect(within(screen.getByRole("region", { name: "Favorites" })).getByText("晴天")).not.toBeNull();
-
-    await userEvent.click(screen.getAllByRole("button", { name: "加入 Studio Mix 晴天" })[0]);
-    const playlist = screen.getByRole("region", { name: "Studio Mix" });
-    expect(within(playlist).getByText("晴天")).not.toBeNull();
+    expect(usePlayerStore.getState().isFavorite(songs[0])).toBe(true);
+    expect(screen.getAllByRole("button", { name: "取消收藏 晴天" })[0]).not.toBeNull();
   });
 
-  it("shows queue and moves to next and previous songs", async () => {
+  it("moves to next and previous songs from the bottom player", async () => {
     await selectFirstSong();
 
-    const queue = screen.getByRole("region", { name: "Queue" });
-    expect(within(queue).getByText("晴天")).not.toBeNull();
-    expect(within(queue).getByText("夜曲")).not.toBeNull();
-
-    await userEvent.click(screen.getByRole("button", { name: "下一首" }));
+    await userEvent.click(screen.getByRole("button", { name: "底部切下一曲" }));
     expect(screen.getAllByText("夜曲")[0]).not.toBeNull();
     expect(usePlayerStore.getState().current?.id).toBe("2");
 
-    await userEvent.click(screen.getByRole("button", { name: "上一首" }));
+    await userEvent.click(screen.getByRole("button", { name: "底部切上一曲" }));
     expect(usePlayerStore.getState().current?.id).toBe("1");
   });
 
-  it("highlights timed lyrics after an audio time update", async () => {
-    await selectFirstSong();
-    const audio = screen.getByTestId("audio-player");
-    Object.defineProperty(audio, "currentTime", { configurable: true, value: 46 });
-    Object.defineProperty(audio, "duration", { configurable: true, value: 120 });
-
-    fireEvent.timeUpdate(audio);
-
-    expect(screen.getByText("副歌来了").closest("li")?.className).toContain("active");
-  });
-
-  it("shows recoverable playback and lyric errors", async () => {
+  it("shows recoverable playback errors", async () => {
     mediaMocks.play.mockRejectedValue(new Error("blocked"));
-    apiMocks.lyric.mockRejectedValue(new Error("lyric down"));
 
     await selectFirstSong();
 
     expect(await screen.findByText("当前搜索结果暂时没有可播放音源，已尝试前端直连和服务端兜底。")).not.toBeNull();
-    expect(await screen.findByText("歌词暂时加载失败。")).not.toBeNull();
   });
 
   it("does not request url endpoint when a song already has a playable url", async () => {
@@ -455,7 +445,7 @@ describe("App", () => {
     expect(usePlayerStore.getState().current?.id).toBe("2");
   });
 
-  it("handles unavailable playable urls, audio element errors, empty lyric responses, and disabled playback", async () => {
+  it("handles unavailable playable urls, audio element errors, and disabled playback", async () => {
     apiMocks.search.mockResolvedValue([
       {
         source: "migu",
@@ -466,8 +456,6 @@ describe("App", () => {
     apiMocks.playableUrl
       .mockResolvedValueOnce({ source: "migu", url: null })
       .mockResolvedValueOnce({ source: "migu", url: "https://cdn.example.com/silent.mp3" });
-    apiMocks.lyric.mockResolvedValue({ type: 1, lines: [] });
-
     renderApp();
     expect(screen.getAllByRole("button", { name: /播放/ })[0]).toHaveProperty("disabled", true);
 
@@ -477,32 +465,14 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("button", { name: /播放 静音曲/ }));
     fireEvent.error(screen.getByTestId("audio-player"));
     expect(await screen.findByText("音频资源无法读取，已停止播放。")).not.toBeNull();
-    expect(await screen.findByText("暂无歌词，先选择一首歌。")).not.toBeNull();
   });
 
-  it("plays from recent, queue, favorites, and playlist panels and changes volume", async () => {
-    await selectFirstSong();
+  it("does not show an audio error before a source has been loaded", () => {
+    renderApp();
 
-    fireEvent.change(screen.getByLabelText("音量"), { target: { value: "0.35" } });
-    expect(usePlayerStore.getState().volume).toBe(0.35);
+    fireEvent.error(screen.getByTestId("audio-player"));
 
-    await userEvent.click(screen.getAllByRole("button", { name: "收藏 晴天" })[0]);
-    await userEvent.click(screen.getAllByRole("button", { name: "加入 Studio Mix 晴天" })[0]);
-
-    await userEvent.click(
-      within(screen.getByRole("region", { name: "Library" })).getByRole("button", { name: "晴天" }),
-    );
-    await userEvent.click(
-      within(screen.getByRole("region", { name: "Queue" })).getByRole("button", { name: "移出队列 夜曲" }),
-    );
-    expect(usePlayerStore.getState().queue.map(songKey)).toEqual(["migu:1"]);
-
-    await userEvent.click(
-      within(screen.getByRole("region", { name: "Favorites" })).getByRole("button", { name: "晴天" }),
-    );
-    await userEvent.click(
-      within(screen.getByRole("region", { name: "Studio Mix" })).getByRole("button", { name: "晴天" }),
-    );
+    expect(screen.queryByText("音频资源无法读取，已停止播放。")).toBeNull();
   });
 
   it("renders decorative album art with stable image dimensions", async () => {
@@ -510,7 +480,7 @@ describe("App", () => {
 
     const coverImages = await screen.findAllByRole("presentation");
 
-    expect(coverImages.length).toBeGreaterThanOrEqual(3);
+    expect(coverImages.length).toBeGreaterThanOrEqual(2);
     for (const image of coverImages) {
       expect(image.getAttribute("width")).not.toBeNull();
       expect(image.getAttribute("height")).not.toBeNull();
@@ -546,6 +516,14 @@ describe("App", () => {
     fireEvent.change(screen.getByTestId("shadcn-slider:mini-progress"), { target: { value: "42" } });
 
     expect(usePlayerStore.getState().currentTime).toBe(42);
+  });
+
+  it("ignores progress seek before duration metadata is available", () => {
+    renderApp();
+
+    fireEvent.change(screen.getByTestId("shadcn-slider:mini-progress"), { target: { value: "42" } });
+
+    expect(usePlayerStore.getState().currentTime).toBe(0);
   });
 
   it("gives the compact mini player an accessible play label", async () => {

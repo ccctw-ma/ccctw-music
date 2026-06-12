@@ -91,6 +91,22 @@ describe("music providers", () => {
     await expect(miguProvider.lyric("empty", context)).resolves.toMatchObject({ type: 0, lines: [] });
   });
 
+  it("falls back to migu search when detail has no resource", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({}))
+        .mockResolvedValueOnce(
+          jsonResponse({ musics: [{ copyrightId: "fallback", songName: "Fallback", singer: "A" }] }),
+        ),
+    };
+
+    await expect(miguProvider.songDetail("fallback", context)).resolves.toMatchObject({
+      id: "fallback",
+      name: "Fallback",
+    });
+  });
+
   it("searches netease and parses lyrics", async () => {
     const context: ProviderContext = {
       fetch: vi
@@ -350,6 +366,14 @@ describe("music providers", () => {
       total: 0,
       songs: [],
     });
+  });
+
+  it("returns null for empty qq detail search", async () => {
+    const context: ProviderContext = {
+      fetch: vi.fn().mockResolvedValueOnce(jsonResponse({ data: { song: { list: [] } } })),
+    };
+
+    await expect(qqProvider.songDetail("missing", context)).resolves.toBeNull();
   });
 
   it("returns null qq playable url when vkey is missing", async () => {
