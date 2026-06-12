@@ -103,13 +103,26 @@ describe("music providers", () => {
             },
           }),
         )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            songs: [
+              {
+                id: 2,
+                name: "Net",
+                artists: [{ name: "A" }],
+                album: { name: "Al", picUrl: "https://p1.music.126.net/net.jpg" },
+                duration: 1000,
+              },
+            ],
+          }),
+        )
         .mockResolvedValueOnce(jsonResponse({ lrc: { lyric: "[00:01.00]hello" } })),
     };
 
     await expect(neteaseProvider.search({ keyword: "net" }, context)).resolves.toMatchObject({
       source: "netease",
       total: 1,
-      songs: [{ id: "2", name: "Net", duration: 1 }],
+      songs: [{ id: "2", name: "Net", duration: 1, coverUrl: "https://p1.music.126.net/net.jpg" }],
     });
     await expect(neteaseProvider.lyric("2", context)).resolves.toMatchObject({
       type: 2,
@@ -166,10 +179,101 @@ describe("music providers", () => {
     });
   });
 
+  it("uses the browser-friendly netease url parser when public api is unavailable", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ data: [{ url: null }] }))
+        .mockResolvedValueOnce(encryptedNeteaseResponse({ data: [{ url: null }] }))
+        .mockResolvedValueOnce(jsonResponse({ status: 0 }))
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 206,
+          headers: new Headers({ "content-type": "audio/mpeg" }),
+        } as Response),
+    };
+
+    await expect(neteaseProvider.playableUrl("6", context)).resolves.toMatchObject({
+      source: "netease",
+      url: expect.stringContaining("music.3e0.cn"),
+      quality: "public",
+    });
+  });
+
+  it("accepts the browser-friendly netease url parser when it returns audio content with 200", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ data: [{ url: null }] }))
+        .mockResolvedValueOnce(encryptedNeteaseResponse({ data: [{ url: null }] }))
+        .mockResolvedValueOnce(jsonResponse({ status: 0 }))
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          headers: new Headers({ "content-type": "audio/mpeg" }),
+        } as Response),
+    };
+
+    await expect(neteaseProvider.playableUrl("7", context)).resolves.toMatchObject({
+      source: "netease",
+      url: expect.stringContaining("music.3e0.cn"),
+      quality: "public",
+    });
+  });
+
+  it("ignores invalid netease search/detail rows while enriching covers", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce({
+          ...jsonResponse({
+            result: { songCount: 2, songs: [null, { id: 2, name: "Net", artists: [], album: {}, duration: 1000 }] },
+          }),
+        })
+        .mockResolvedValueOnce(
+          jsonResponse({
+            songs: [
+              { id: "", name: "Ignored", artists: [], album: { picUrl: "ignored.jpg" } },
+              { id: 2, name: "Net", artists: [], album: { picUrl: "cover.jpg" }, duration: 1000 },
+            ],
+          }),
+        ),
+    };
+
+    await expect(neteaseProvider.search({ keyword: "net" }, context)).resolves.toMatchObject({
+      source: "netease",
+      total: 2,
+      songs: [{ id: "2", coverUrl: "cover.jpg" }],
+    });
+  });
+
+  it("keeps netease search usable when detail enrichment fails", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse({
+            result: {
+              songCount: 1,
+              songs: [{ id: 2, name: "Net", artists: [{ name: "A" }], album: { name: "Al" }, duration: 1000 }],
+            },
+          }),
+        )
+        .mockRejectedValueOnce(new TypeError("detail upstream failed")),
+    };
+
+    await expect(neteaseProvider.search({ keyword: "net" }, context)).resolves.toMatchObject({
+      source: "netease",
+      total: 1,
+      songs: [{ id: "2", name: "Net", coverUrl: null }],
+    });
+  });
+
   it("handles empty netease responses", async () => {
     const context: ProviderContext = {
       fetch: vi
         .fn()
+        .mockResolvedValueOnce(jsonResponse({}))
         .mockResolvedValueOnce(jsonResponse({}))
         .mockResolvedValueOnce(jsonResponse({}))
         .mockResolvedValueOnce(jsonResponse({}))

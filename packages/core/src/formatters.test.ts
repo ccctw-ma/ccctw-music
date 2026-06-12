@@ -50,6 +50,21 @@ describe("song formatters", () => {
     });
   });
 
+  it("uses netease blurPicUrl as album cover fallback", () => {
+    expect(
+      formatNeteaseSong({
+        id: 100,
+        name: "Blur Cover",
+        artists: [],
+        album: { id: 3, name: "Album", blurPicUrl: "http://p1.music.126.net/blur.jpg" },
+        duration: 1000,
+      }),
+    ).toMatchObject({
+      coverUrl: "https://p1.music.126.net/blur.jpg",
+      album: { coverUrl: "https://p1.music.126.net/blur.jpg" },
+    });
+  });
+
   it("normalizes qq songs and builds album cover url", () => {
     const song = formatQqSong({
       songid: 7,
@@ -71,15 +86,7 @@ describe("song formatters", () => {
   });
 
   it("filters empty normalized songs and ignores unsupported sources", () => {
-    expect(
-      formatSongs(
-        [
-          { id: "", name: "" },
-          { id: 1, name: "ok" },
-        ],
-        "netease",
-      ),
-    ).toHaveLength(1);
+    expect(formatSongs([null, { id: "", name: "" }, { id: 1, name: "ok" }], "netease")).toHaveLength(1);
     expect(formatSongs([{ id: 1 }], "other")).toEqual([]);
     expect(formatSongs(null as unknown as unknown[], "migu")).toEqual([]);
   });

@@ -10,6 +10,7 @@ type Song = {
   id: string;
   source: MusicSource;
   name: string;
+  coverUrl?: string | null;
   playableUrl?: string | null;
   quality?: {
     score: number;
@@ -69,6 +70,14 @@ let testedCount = 0;
 
 function bestScore(result: SearchResult) {
   return result.songs[0]?.quality?.score ?? 0;
+}
+
+function isLikelyResolvable(song: Song) {
+  return Boolean(song.playableUrl) || song.source === "netease";
+}
+
+function songScore(song: Song) {
+  return (isLikelyResolvable(song) ? 100 : 0) + (song.quality?.score ?? 0);
 }
 
 async function serverSearch(keyword: string, requestedSources: MusicSource[]) {
@@ -178,44 +187,77 @@ async function resolvePlayableUrl(song: Song) {
 
 for (const keyword of keywords) {
   const searchResults = await clientFirstSearch(keyword);
-
-  for (const group of searchResults) {
-    for (const song of (group.songs ?? []).slice(0, 3)) {
-      testedCount += 1;
-      const { urlStatus, playableUrl, error } = await resolvePlayableUrl(song);
-      const audio: {
-        ok?: boolean;
-        status?: number;
-        contentType?: string | null;
-        contentRange?: string | null;
-        cors?: string | null;
-        error?: string;
-      } | null = playableUrl
-        ? await checkAudioUrl(playableUrl).catch((error: Error) => ({ error: error.message }))
-        : null;
-      if (audio?.ok) {
-        playableCount += 1;
-      }
-
-      console.log(
+  const orderedSongs = searchResults
+    .flatMap((group) => group.songs ?? [])
+    .sort((left, right) => songScore(right) - songScore(left));
+  const firstSong = orderedSongs[0];
+  if (firstSong) {
+    console.log(
+      JSON.stringify(
+        {
+          step: "first-song",
+          keyword,
+          source: firstSong.source,
+          id: firstSong.id,
+          name: firstSong.name,
+          hasCoverUrl: Boolean(firstSong.coverUrl),
+          likelyResolvable: isLikelyResolvable(firstSong),
+        },
+        null,
+        2,
+      ),
+    );
+    if (!firstSong.coverUrl) {
+      console.error(
         JSON.stringify(
           {
-            step: "song",
+            step: "result",
+            ok: false,
             keyword,
-            source: song.source,
-            id: song.id,
-            name: song.name,
-            urlStatus,
-            hasPlayableUrl: Boolean(playableUrl),
-            audio,
-            error,
+            message: "First playable-ranked song has no coverUrl.",
           },
           null,
           2,
         ),
       );
+      process.exit(1);
+    }
+  }
+
+  for (const song of orderedSongs.slice(0, 6)) {
+    testedCount += 1;
+    const { urlStatus, playableUrl, error } = await resolvePlayableUrl(song);
+    const audio: {
+      ok?: boolean;
+      status?: number;
+      contentType?: string | null;
+      contentRange?: string | null;
+      cors?: string | null;
+      error?: string;
+    } | null = playableUrl
+      ? await checkAudioUrl(playableUrl).catch((error: Error) => ({ error: error.message }))
+      : null;
+    if (audio?.ok) {
+      playableCount += 1;
     }
 
+    console.log(
+      JSON.stringify(
+        {
+          step: "song",
+          keyword,
+          source: song.source,
+          id: song.id,
+          name: song.name,
+          urlStatus,
+          hasPlayableUrl: Boolean(playableUrl),
+          audio,
+          error,
+        },
+        null,
+        2,
+      ),
+    );
     if (playableCount > 0) {
       break;
     }

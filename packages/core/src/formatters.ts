@@ -2,6 +2,10 @@ import type { MusicSource, Song, SongQuality } from "./types";
 
 type UnknownRecord = Record<string, any>;
 
+function isRecord(value: unknown): value is UnknownRecord {
+  return Boolean(value && typeof value === "object");
+}
+
 function artistsFromNames(names?: string): { name: string }[] {
   return names
     ? names
@@ -38,12 +42,15 @@ function miguCoverUrl(raw: UnknownRecord): string | undefined {
 function neteaseCoverUrl(raw: UnknownRecord, album: UnknownRecord): string | undefined {
   return normalizeCoverUrl(
     album.picUrl ??
+      album.blurPicUrl ??
       album.img1v1Url ??
       album.coverUrl ??
       raw.picUrl ??
+      raw.blurPicUrl ??
       raw.coverUrl ??
       raw.albumPic ??
       raw.album?.picUrl ??
+      raw.album?.blurPicUrl ??
       raw.al?.picUrl,
   );
 }
@@ -189,21 +196,24 @@ export function formatSongs(rawSongs: unknown[], source: MusicSource): Song[] {
 
   if (source === "migu") {
     return rawSongs
-      .map((song) => formatMiguSong(song as UnknownRecord))
+      .filter(isRecord)
+      .map((song) => formatMiguSong(song))
       .filter((song) => song.id && song.name)
       .sort((left, right) => right.quality.score - left.quality.score);
   }
 
   if (source === "netease") {
     return rawSongs
-      .map((song) => formatNeteaseSong(song as UnknownRecord))
+      .filter(isRecord)
+      .map((song) => formatNeteaseSong(song))
       .filter((song) => song.id && song.name)
       .sort((left, right) => right.quality.score - left.quality.score);
   }
 
   if (source === "qq") {
     return rawSongs
-      .map((song) => formatQqSong(song as UnknownRecord))
+      .filter(isRecord)
+      .map((song) => formatQqSong(song))
       .filter((song) => song.id && song.name)
       .sort((left, right) => right.quality.score - left.quality.score);
   }

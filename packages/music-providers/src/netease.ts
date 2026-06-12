@@ -24,6 +24,7 @@ interface NeteasePublicUrlResponse {
 
 const NETEASE_EAPI_KEY = "e82ckenh8dichen8";
 const NETEASE_PLAYER_URL_PATH = "/api/song/enhance/player/url";
+const NETEASE_FALLBACK_URL_ORIGIN = "https://music.3e0.cn/";
 
 function aes128EcbEncrypt(text: string) {
   return CryptoJS.AES.encrypt(CryptoJS.enc.Utf8.parse(text), CryptoJS.enc.Utf8.parse(NETEASE_EAPI_KEY), {
@@ -109,7 +110,57 @@ async function publicPlayableUrl(id: string, context: ProviderContext) {
     `https://api.no0a.cn/api/cloudmusic/url/${encodeURIComponent(id)}`,
   ).catch(() => null);
   const url = data?.status === 1 ? data.musicurl : undefined;
-  return url?.replace(/^http:\/\//, "https://") ?? null;
+  if (url) {
+    return url.replace(/^http:\/\//, "https://");
+  }
+
+  const fallbackUrl = `${NETEASE_FALLBACK_URL_ORIGIN}?${toSearchParams({
+    server: "netease",
+    type: "url",
+    id,
+  }).toString()}`;
+  const response = await fetchWithTimeout(context.fetch, fallbackUrl, {
+    headers: {
+      Range: "bytes=0-1",
+      "User-Agent": "Mozilla/5.0 CCCTW-Music-Worker",
+    },
+  }).catch(() => null);
+  const contentType = response?.headers?.get("content-type") ?? "";
+  if (response && (response.status === 206 || contentType.startsWith("audio/"))) {
+    return fallbackUrl;
+  }
+
+  return null;
+}
+
+async function enrichNeteaseSongs(rawSongs: unknown[], context: ProviderContext) {
+  const ids = rawSongs
+    .map((song) => (song && typeof song === "object" ? String((song as { id?: unknown }).id ?? "") : ""))
+    .filter(Boolean);
+  if (ids.length === 0) {
+    return rawSongs;
+  }
+
+  const detail = await getJson<{ songs?: unknown[] }>(
+    context.fetch,
+    `https://music.163.com/api/song/detail?${toSearchParams({ ids: `[${ids.join(",")}]` }).toString()}`,
+    {
+      headers: {
+        Referer: "https://music.163.com",
+        "User-Agent": "Mozilla/5.0 CCCTW-Music-Worker",
+      },
+    },
+  ).catch(() => null);
+  const detailsById = new Map(
+    (detail?.songs ?? [])
+      .map((song) => [String((song as { id?: unknown })?.id ?? ""), song] as const)
+      .filter(([id]) => id),
+  );
+
+  return rawSongs.map((song) => {
+    const id = song && typeof song === "object" ? String((song as { id?: unknown }).id ?? "") : "";
+    return detailsById.get(id) ?? song;
+  });
 }
 
 export const neteaseProvider: MusicProvider = {
@@ -131,7 +182,7 @@ export const neteaseProvider: MusicProvider = {
       },
     });
 
-    const songs = formatSongs(data.result?.songs ?? [], "netease");
+    const songs = formatSongs(await enrichNeteaseSongs(data.result?.songs ?? [], context), "netease");
     return {
       source: "netease",
       total: data.result?.songCount ?? songs.length,

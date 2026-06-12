@@ -39,12 +39,34 @@ function bestScore(result: SearchResult) {
   return result.songs[0]?.quality?.score ?? 0;
 }
 
+function isLikelyResolvable(song: Song) {
+  return Boolean(song.playableUrl) || song.source === "netease";
+}
+
+function resultPlaybackPriority(result: SearchResult) {
+  return result.songs.some(isLikelyResolvable) ? 100 : 0;
+}
+
+function songPlaybackPriority(song: Song) {
+  return isLikelyResolvable(song) ? 100 : 0;
+}
+
+function coverCount(result: SearchResult) {
+  return result.songs.filter((song) => song.coverUrl).length;
+}
+
 async function searchWithBrowserFirst(keyword: string) {
   const direct = await searchDirectMusic({ keyword, sources: [...SOURCES] });
   const directSources = new Set(direct.results.map((result) => result.source));
   const serverSources = SOURCES.filter((source) => {
     const directResult = direct.results.find((result) => result.source === source);
-    return direct.failedSources.includes(source) || !directResult || directResult.songs.length === 0;
+    const needsMetadataEnrichment = source === "netease" && directResult?.songs.some((song) => !song.coverUrl);
+    return (
+      direct.failedSources.includes(source) ||
+      !directResult ||
+      directResult.songs.length === 0 ||
+      needsMetadataEnrichment
+    );
   });
 
   if (serverSources.length === 0) {
@@ -52,12 +74,18 @@ async function searchWithBrowserFirst(keyword: string) {
   }
 
   const serverResults = await apiClient.search({ keyword, sources: serverSources as MusicSource[] }).catch(() => []);
-  const merged = [
-    ...direct.results.filter((result) => result.songs.length > 0),
-    ...serverResults.filter((result) => !directSources.has(result.source) || result.songs.length > 0),
-  ];
+  const serverBySource = new Map(serverResults.map((result) => [result.source, result]));
+  const merged = direct.results
+    .filter((result) => result.songs.length > 0)
+    .map((result) => {
+      const enriched = serverBySource.get(result.source);
+      return enriched && coverCount(enriched) > coverCount(result) ? enriched : result;
+    });
+  merged.push(...serverResults.filter((result) => !directSources.has(result.source) && result.songs.length > 0));
 
-  return merged.sort((left, right) => bestScore(right) - bestScore(left));
+  return merged.sort(
+    (left, right) => resultPlaybackPriority(right) - resultPlaybackPriority(left) || bestScore(right) - bestScore(left),
+  );
 }
 
 function sourceName(source?: string) {
@@ -208,7 +236,15 @@ export function App() {
     enabled: submittedKeyword.trim().length > 0,
   });
 
-  const songs = useMemo(() => searchQuery.data?.flatMap((result) => result.songs) ?? [], [searchQuery.data]);
+  const songs = useMemo(
+    () =>
+      [...(searchQuery.data?.flatMap((result) => result.songs) ?? [])].sort(
+        (left, right) =>
+          songPlaybackPriority(right) - songPlaybackPriority(left) ||
+          (right.quality?.score ?? 0) - (left.quality?.score ?? 0),
+      ),
+    [searchQuery.data],
+  );
   const featuredSongs = useMemo(() => songs.slice(0, 6), [songs]);
   const currentArtists = artists(current);
   const currentKey = current ? songKey(current) : undefined;

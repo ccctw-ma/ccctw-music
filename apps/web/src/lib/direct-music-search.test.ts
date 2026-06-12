@@ -32,15 +32,32 @@ describe("searchDirectMusic", () => {
             },
           },
         }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          songs: [
+            {
+              id: 2,
+              name: "NetEase",
+              artists: [],
+              album: { picUrl: "https://p1.music.126.net/net.jpg" },
+              duration: 1000,
+            },
+          ],
+        }),
       );
 
     const result = await searchDirectMusic({ keyword: "周杰伦", sources: ["migu", "netease", "qq"] }, fetcher);
 
     expect(result.failedSources).toEqual([]);
-    expect(result.results.map((group) => group.source)).toEqual(["migu", "qq", "netease"]);
+    expect(result.results.map((group) => group.source)).toEqual(["migu", "netease", "qq"]);
     expect(result.results[0].songs[0]).toMatchObject({
       id: "m1",
       quality: { sourceLabel: "咪咕音乐", playable: true },
+    });
+    expect(result.results[1].songs[0]).toMatchObject({
+      id: "2",
+      coverUrl: "https://p1.music.126.net/net.jpg",
     });
   });
 
@@ -90,6 +107,39 @@ describe("searchDirectMusic", () => {
     ]);
   });
 
+  it("keeps netease search results when detail enrichment is unavailable", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ result: { songs: [{ id: 2, name: "NetEase", artists: [], album: {} }] } }))
+      .mockRejectedValueOnce(new TypeError("detail cors blocked"));
+
+    const result = await searchDirectMusic({ keyword: "x", sources: ["netease"] }, fetcher);
+
+    expect(result.results[0].songs[0]).toMatchObject({ id: "2", name: "NetEase", coverUrl: null });
+    expect(result.failedSources).toEqual([]);
+  });
+
+  it("ignores invalid netease search/detail rows while enriching covers", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({ result: { songs: [null, { id: 2, name: "NetEase", artists: [], album: {}, duration: 1000 }] } }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          songs: [
+            { id: "", name: "Ignored", artists: [], album: { picUrl: "ignored.jpg" } },
+            { id: 2, name: "NetEase", artists: [], album: { picUrl: "cover.jpg" }, duration: 1000 },
+          ],
+        }),
+      );
+
+    const result = await searchDirectMusic({ keyword: "x", sources: ["netease"] }, fetcher);
+
+    expect(result.results[0].songs).toHaveLength(1);
+    expect(result.results[0].songs[0]).toMatchObject({ id: "2", coverUrl: "cover.jpg" });
+  });
+
   it("deduplicates direct sources and parses jsonp wrappers", async () => {
     const fetcher = vi.fn().mockResolvedValue({
       ok: true,
@@ -113,6 +163,36 @@ describe("searchDirectMusic", () => {
     const fetcher = vi.fn().mockResolvedValue({
       ok: true,
       status: 206,
+      headers: new Headers({ "content-type": "audio/mpeg" }),
+    });
+
+    await expect(
+      resolveDirectPlayableUrl(
+        {
+          id: "2653714443",
+          source: "netease",
+          name: "晴天",
+          artists: [],
+          quality: {
+            sourceLabel: "网易云音乐",
+            official: true,
+            free: false,
+            playable: false,
+            quality: "high",
+            score: 56,
+            badges: [],
+          },
+        },
+        fetcher,
+      ),
+    ).resolves.toContain("music.3e0.cn");
+  });
+
+  it("accepts direct netease playable urls when the parser returns audio content with 200", async () => {
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "audio/mpeg" }),
     });
 
     await expect(
@@ -200,7 +280,28 @@ describe("searchDirectMusic", () => {
             badges: [],
           },
         },
-        vi.fn().mockResolvedValue({ ok: false, status: 404 }),
+        vi.fn().mockResolvedValue({ ok: false, status: 404, headers: new Headers({ "content-type": "text/html" }) }),
+      ),
+    ).resolves.toBeNull();
+
+    await expect(
+      resolveDirectPlayableUrl(
+        {
+          id: "n2",
+          source: "netease",
+          name: "NetEase HTML",
+          artists: [],
+          quality: {
+            sourceLabel: "网易云音乐",
+            official: true,
+            free: false,
+            playable: false,
+            quality: "high",
+            score: 56,
+            badges: [],
+          },
+        },
+        vi.fn().mockResolvedValue({ ok: true, status: 200, headers: new Headers({ "content-type": "text/html" }) }),
       ),
     ).resolves.toBeNull();
   });

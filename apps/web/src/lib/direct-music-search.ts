@@ -19,6 +19,10 @@ interface NeteaseSearchResponse {
   };
 }
 
+interface NeteaseDetailResponse {
+  songs?: unknown[];
+}
+
 interface QqSearchResponse {
   data?: {
     song?: {
@@ -82,12 +86,44 @@ async function searchNetease(input: DirectSearchInput, fetcher: typeof fetch): P
     },
     signal: AbortSignal.timeout(6500),
   }).then((response) => readJson<NeteaseSearchResponse>(response));
-  const songs = formatSongs(data.result?.songs ?? [], "netease");
+  const rawSongs = data.result?.songs ?? [];
+  const songs = formatSongs(await enrichNeteaseSongs(rawSongs, fetcher), "netease");
   return {
     source: "netease",
     total: data.result?.songCount ?? songs.length,
     songs,
   };
+}
+
+async function enrichNeteaseSongs(rawSongs: unknown[], fetcher: typeof fetch) {
+  const ids = rawSongs
+    .map((song) => (song && typeof song === "object" ? String((song as { id?: unknown }).id ?? "") : ""))
+    .filter(Boolean);
+  if (ids.length === 0) {
+    return rawSongs;
+  }
+
+  const data = await fetcher(
+    `https://music.163.com/api/song/detail?${toSearchParams({ ids: `[${ids.join(",")}]` }).toString()}`,
+    {
+      headers: {
+        Referer: "https://music.163.com",
+      },
+      signal: AbortSignal.timeout(6500),
+    },
+  )
+    .then((response) => readJson<NeteaseDetailResponse>(response))
+    .catch(() => null);
+  const detailsById = new Map(
+    (data?.songs ?? [])
+      .map((song) => [String((song as { id?: unknown })?.id ?? ""), song] as const)
+      .filter(([id]) => id),
+  );
+
+  return rawSongs.map((song) => {
+    const id = song && typeof song === "object" ? String((song as { id?: unknown }).id ?? "") : "";
+    return detailsById.get(id) ?? song;
+  });
 }
 
 async function searchQq(input: DirectSearchInput, fetcher: typeof fetch): Promise<SearchResult> {
@@ -113,6 +149,14 @@ async function searchQq(input: DirectSearchInput, fetcher: typeof fetch): Promis
 
 function bestScore(result: SearchResult) {
   return result.songs[0]?.quality.score ?? 0;
+}
+
+function isLikelyResolvable(song: Song) {
+  return Boolean(song.playableUrl) || song.source === "netease";
+}
+
+function bestPlaybackPriority(result: SearchResult) {
+  return result.songs.some(isLikelyResolvable) ? 100 : 0;
 }
 
 export async function searchDirectMusic(input: DirectSearchInput, fetcher: typeof fetch = fetch) {
@@ -143,7 +187,9 @@ export async function searchDirectMusic(input: DirectSearchInput, fetcher: typeo
   });
 
   return {
-    results: results.sort((left, right) => bestScore(right) - bestScore(left)),
+    results: results.sort(
+      (left, right) => bestPlaybackPriority(right) - bestPlaybackPriority(left) || bestScore(right) - bestScore(left),
+    ),
     failedSources,
   };
 }
@@ -165,7 +211,8 @@ export async function resolveDirectPlayableUrl(song: Song, fetcher: typeof fetch
       },
       signal: AbortSignal.timeout(6500),
     });
-    if (response.ok || response.status === 206) {
+    const contentType = response.headers?.get("content-type") ?? "";
+    if (response.status === 206 || contentType.startsWith("audio/")) {
       return url;
     }
   }
