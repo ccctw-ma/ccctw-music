@@ -36,52 +36,66 @@ function bestScore(result: SearchResult) {
 }
 
 function isLikelyResolvable(song: Song) {
-  return Boolean(song.playableUrl) || song.source === "netease";
+  return Boolean(song.playableUrl) || song.source === "migu" || song.source === "netease";
 }
 
 function resultPlaybackPriority(result: SearchResult) {
   return result.songs.some(isLikelyResolvable) ? 100 : 0;
 }
 
-function songPlaybackPriority(song: Song) {
-  return isLikelyResolvable(song) ? 100 : 0;
-}
-
-function coverCount(result: SearchResult) {
-  return result.songs.filter((song) => song.coverUrl).length;
-}
-
 async function searchWithBrowserFirst(keyword: string) {
   const direct = await searchDirectMusic({ keyword, sources: [...SOURCES] });
-  const directSources = new Set(direct.results.map((result) => result.source));
-  const serverSources = SOURCES.filter((source) => {
-    const directResult = direct.results.find((result) => result.source === source);
-    const needsMetadataEnrichment = source === "netease" && directResult?.songs.some((song) => !song.coverUrl);
-    return (
-      direct.failedSources.includes(source) ||
-      !directResult ||
-      directResult.songs.length === 0 ||
-      needsMetadataEnrichment
-    );
-  });
-
-  if (serverSources.length === 0) {
-    return direct.results;
-  }
-
-  const serverResults = await apiClient.search({ keyword, sources: serverSources as MusicSource[] }).catch(() => []);
+  const serverResults = await apiClient.search({ keyword, sources: [...SOURCES] }).catch(() => []);
   const serverBySource = new Map(serverResults.map((result) => [result.source, result]));
-  const merged = direct.results
-    .filter((result) => result.songs.length > 0)
-    .map((result) => {
-      const enriched = serverBySource.get(result.source);
-      return enriched && coverCount(enriched) > coverCount(result) ? enriched : result;
-    });
-  merged.push(...serverResults.filter((result) => !directSources.has(result.source) && result.songs.length > 0));
+  const directBySource = new Map(direct.results.map((result) => [result.source, result]));
+  const merged = SOURCES.flatMap((source) => {
+    const directResult = directBySource.get(source);
+    const serverResult = serverBySource.get(source);
+    const songsByKey = new Map<string, Song>();
+
+    for (const song of directResult?.songs ?? []) {
+      songsByKey.set(songKey(song), song);
+    }
+    for (const song of serverResult?.songs ?? []) {
+      const existing = songsByKey.get(songKey(song));
+      songsByKey.set(songKey(song), existing && (existing.coverUrl || !song.coverUrl) ? existing : song);
+    }
+
+    const songs = [...songsByKey.values()];
+    return songs.length
+      ? [
+          {
+            source,
+            total: Math.max(directResult?.total ?? 0, serverResult?.total ?? 0, songs.length),
+            songs,
+          },
+        ]
+      : [];
+  });
 
   return merged.sort(
     (left, right) => resultPlaybackPriority(right) - resultPlaybackPriority(left) || bestScore(right) - bestScore(left),
   );
+}
+
+function interleaveSearchResults(results: SearchResult[]) {
+  const groups = results.map((result) => [...result.songs]);
+  const mixed: Song[] = [];
+  const seen = new Set<string>();
+  const maxLength = Math.max(0, ...groups.map((songs) => songs.length));
+
+  for (let index = 0; index < maxLength; index += 1) {
+    for (const group of groups) {
+      const song = group[index];
+      if (!song || seen.has(songKey(song))) {
+        continue;
+      }
+      seen.add(songKey(song));
+      mixed.push(song);
+    }
+  }
+
+  return mixed;
 }
 
 function sourceName(source?: string) {
@@ -282,15 +296,7 @@ export function App() {
     enabled: submittedKeyword.trim().length > 0,
   });
 
-  const songs = useMemo(
-    () =>
-      [...(searchQuery.data?.flatMap((result) => result.songs) ?? [])].sort(
-        (left, right) =>
-          songPlaybackPriority(right) - songPlaybackPriority(left) ||
-          (right.quality?.score ?? 0) - (left.quality?.score ?? 0),
-      ),
-    [searchQuery.data],
-  );
+  const songs = useMemo(() => interleaveSearchResults(searchQuery.data ?? []), [searchQuery.data]);
   const featuredSongs = useMemo(() => songs.slice(0, 6), [songs]);
   const currentArtists = artists(current);
   const currentKey = current ? songKey(current) : undefined;
@@ -816,7 +822,6 @@ export function App() {
                 <span className={isPlaying ? "detail-pulse active" : "detail-pulse"} aria-hidden="true" />
               </div>
               <div className="detail-info">
-                <span className="section-kicker">Now Playing</span>
                 <h2>{displaySong.name}</h2>
                 <p className="detail-artist">{artists(displaySong)}</p>
                 <div className="detail-meta">

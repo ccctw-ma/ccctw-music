@@ -186,7 +186,7 @@ describe("App", () => {
     expect(screen.getAllByText((content) => content.includes("咪咕音乐")).length).toBeGreaterThan(0);
   });
 
-  it("uses direct browser search results and only fills empty sources from server fallback", async () => {
+  it("merges direct browser search results with all server fallback sources", async () => {
     directMocks.searchDirectMusic.mockResolvedValue({
       results: [
         { source: "migu", total: 1, songs: [songs[0]] },
@@ -206,10 +206,10 @@ describe("App", () => {
       keyword: "周杰伦",
       sources: ["migu", "netease", "qq"],
     });
-    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["netease", "qq"] });
+    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["migu", "netease", "qq"] });
   });
 
-  it("skips server fallback when all direct browser sources have songs", async () => {
+  it("keeps all direct browser sources while also asking the server fallback", async () => {
     directMocks.searchDirectMusic.mockResolvedValue({
       results: [
         { source: "migu", total: 1, songs: [{ ...songs[0], coverUrl: "migu.jpg" }] },
@@ -222,7 +222,7 @@ describe("App", () => {
     renderApp();
 
     expect(await screen.findByRole("button", { name: /播放 稻香/ })).not.toBeNull();
-    expect(apiMocks.search).not.toHaveBeenCalled();
+    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["migu", "netease", "qq"] });
   });
 
   it("puts likely playable netease songs before non-playable qq songs", async () => {
@@ -233,12 +233,13 @@ describe("App", () => {
       ],
       failedSources: [],
     });
+    apiMocks.search.mockResolvedValueOnce([]);
 
     renderApp();
 
     const buttons = await screen.findAllByRole("button", { name: /播放 / });
     expect(buttons[0].textContent).toContain("夜曲");
-    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["migu"] });
+    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["migu", "netease", "qq"] });
   });
 
   it("replaces direct netease results with server-enriched covers", async () => {
@@ -273,7 +274,7 @@ describe("App", () => {
 
     expect(await screen.findByRole("button", { name: /播放 晴天/ })).not.toBeNull();
     expect(await screen.findByRole("button", { name: /播放 夜曲/ })).not.toBeNull();
-    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["netease", "qq"] });
+    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["migu", "netease", "qq"] });
   });
 
   it("keeps direct browser results when server fallback fails", async () => {

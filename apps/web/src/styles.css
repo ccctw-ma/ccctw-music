@@ -770,8 +770,8 @@ p {
   inset: 0 0 92px;
   z-index: 40;
   overflow: hidden;
-  background: #03101c;
-  animation: detail-fade 280ms ease;
+  background: #020817;
+  animation: detail-fade 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @keyframes detail-fade {
@@ -791,25 +791,29 @@ p {
   width: 120%;
   height: 120%;
   object-fit: cover;
-  opacity: 0.5;
-  filter: blur(46px) saturate(1.4);
+  opacity: 0.44;
+  filter: blur(54px) saturate(1.55);
   transform: scale(1.08);
+  animation: detail-breathe 14s ease-in-out infinite alternate;
 }
 
 .detail-vignette {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 28% 26%, rgba(14, 165, 233, 0.28), transparent 46%),
-    radial-gradient(circle at 80% 8%, rgba(125, 211, 252, 0.18), transparent 42%),
-    linear-gradient(180deg, rgba(2, 6, 23, 0.42), rgba(2, 6, 23, 0.82) 60%, rgba(2, 6, 23, 0.97));
+    radial-gradient(circle at 22% 32%, rgba(14, 165, 233, 0.3), transparent 42%),
+    radial-gradient(circle at 70% 16%, rgba(236, 72, 153, 0.18), transparent 38%),
+    radial-gradient(circle at 72% 78%, rgba(34, 211, 238, 0.12), transparent 36%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.3), rgba(2, 6, 23, 0.82) 58%, rgba(2, 6, 23, 0.98));
+  background-size: 120% 120%;
+  animation: detail-aurora 16s ease-in-out infinite alternate;
 }
 
 .detail-scroll {
   position: relative;
   z-index: 1;
   height: 100%;
-  padding: clamp(28px, 5vw, 64px) clamp(20px, 6vw, 96px) 56px;
+  padding: clamp(28px, 5vw, 58px) clamp(20px, 6vw, 88px) 56px;
   overflow-y: auto;
   scroll-behavior: smooth;
   scrollbar-width: none;
@@ -822,10 +826,12 @@ p {
 
 .detail-hero {
   display: grid;
-  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
-  gap: clamp(28px, 5vw, 72px);
+  grid-template-columns: minmax(320px, 0.92fr) minmax(360px, 1fr);
+  gap: clamp(34px, 5vw, 86px);
   align-items: center;
-  min-height: calc(100% - 40px);
+  width: min(1120px, 100%);
+  min-height: calc(100% - 36px);
+  margin: 0 auto;
 }
 
 .detail-art {
@@ -834,7 +840,29 @@ p {
   place-items: center;
   aspect-ratio: 1;
   width: 100%;
-  max-width: 420px;
+  max-width: 470px;
+  animation: detail-float 7s ease-in-out infinite;
+}
+
+.detail-art::before,
+.detail-art::after {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  content: "";
+}
+
+.detail-art::before {
+  inset: -10%;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  box-shadow: 0 0 70px rgba(14, 165, 233, 0.16);
+  animation: detail-orbit 10s linear infinite;
+}
+
+.detail-art::after {
+  inset: 16%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.18), transparent 62%);
+  filter: blur(18px);
 }
 
 .detail-disc {
@@ -844,8 +872,12 @@ p {
   background:
     repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 8px),
     radial-gradient(circle at 50% 50%, #1c1c22 0 58%, #0b0b0f 58% 100%);
-  box-shadow: 0 40px 110px rgba(0, 0, 0, 0.6);
-  animation: detail-spin 24s linear infinite;
+  box-shadow:
+    0 44px 120px rgba(0, 0, 0, 0.62),
+    inset 0 0 40px rgba(255, 255, 255, 0.04);
+  animation:
+    detail-spin 24s linear infinite,
+    detail-disc-glow 5s ease-in-out infinite alternate;
 }
 
 .detail-art:has(.detail-pulse:not(.active)) .detail-disc {
@@ -858,6 +890,55 @@ p {
   }
 }
 
+@keyframes detail-breathe {
+  to {
+    opacity: 0.58;
+    transform: scale(1.14);
+  }
+}
+
+@keyframes detail-aurora {
+  to {
+    background-position: 16% 100%;
+  }
+}
+
+@keyframes detail-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0);
+  }
+}
+
+@keyframes detail-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes detail-disc-glow {
+  to {
+    box-shadow:
+      0 52px 130px rgba(0, 0, 0, 0.66),
+      0 0 70px rgba(14, 165, 233, 0.18),
+      inset 0 0 46px rgba(255, 255, 255, 0.05);
+  }
+}
+
+@keyframes detail-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .detail-cover {
   position: relative;
   z-index: 1;
@@ -866,7 +947,9 @@ p {
   object-fit: cover;
   border: 4px solid rgba(255, 255, 255, 0.12);
   border-radius: 50%;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 10px rgba(255, 255, 255, 0.03);
 }
 
 .detail-pulse {
@@ -884,17 +967,25 @@ p {
 }
 
 .detail-info {
+  position: relative;
   display: grid;
   align-content: center;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
   max-width: 620px;
+  padding: clamp(22px, 3.5vw, 34px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 26px;
+  background: linear-gradient(135deg, rgba(8, 25, 43, 0.5), rgba(2, 8, 23, 0.22));
+  box-shadow: 0 34px 120px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(18px) saturate(1.25);
+  animation: detail-slide-up 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .detail-info h2 {
-  margin: 4px 0 0;
+  margin: 0;
   color: #fff;
-  font-size: clamp(30px, 4.4vw, 56px);
+  font-size: clamp(34px, 5vw, 68px);
   line-height: 1.04;
   letter-spacing: -0.04em;
 }
@@ -931,16 +1022,19 @@ p {
 
 .detail-lyrics {
   display: grid;
-  gap: 10px;
+  gap: 9px;
   width: 100%;
-  max-height: 30vh;
-  margin: 18px 0 0;
-  padding: 0;
+  max-height: 32vh;
+  margin: 10px 0 0;
+  padding: 14px 16px;
   overflow: auto;
-  color: rgba(224, 242, 254, 0.34);
+  color: rgba(224, 242, 254, 0.42);
   font-size: clamp(15px, 1.5vw, 18px);
   line-height: 1.6;
   list-style: none;
+  border: 1px solid rgba(125, 211, 252, 0.08);
+  border-radius: 18px;
+  background: rgba(2, 8, 23, 0.18);
   scrollbar-width: none;
   -ms-overflow-style: none;
   mask-image: linear-gradient(transparent, #000 12%, #000 86%, transparent);
@@ -959,7 +1053,8 @@ p {
 .detail-lyrics li.active {
   color: #fff;
   font-weight: 600;
-  transform: translateX(4px) scale(1.02);
+  text-shadow: 0 0 22px rgba(125, 211, 252, 0.24);
+  transform: translateX(8px) scale(1.03);
 }
 
 .detail-comments {
@@ -1305,6 +1400,7 @@ p {
     gap: 22px;
     text-align: center;
     min-height: auto;
+    width: 100%;
   }
 
   .detail-art {
@@ -1314,6 +1410,8 @@ p {
 
   .detail-info {
     justify-items: center;
+    padding: 18px;
+    border-radius: 20px;
   }
 
   .detail-meta,
