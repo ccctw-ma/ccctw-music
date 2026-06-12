@@ -6,5 +6,5 @@ export default function onRequest({ request }: { request: Request }) {
   targetUrl.pathname = incomingUrl.pathname;
   targetUrl.search = incomingUrl.search;
 
-  return Response.redirect(targetUrl, 307);
+  return Response.redirect(targetUrl.toString(), 302);
 }
