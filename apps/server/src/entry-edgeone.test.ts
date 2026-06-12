@@ -51,4 +51,40 @@ describe("EdgeOne entry", () => {
       }),
     );
   });
+
+  it("falls back to the direct workers.dev origin when the configured base URL points to an app entry host", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetcher);
+
+    await entry.fetch(new Request("https://music-cn.ccctw.com/v1/search?keyword=test"), {
+      APP_ENV: "test",
+      RUNTIME: "edgeone",
+      UNIFIED_API_BASE_URL: "https://music-cn.ccctw.com",
+    });
+
+    expect(fetcher).toHaveBeenCalledWith(
+      new URL("https://ccctw-music-api.1934202608.workers.dev/v1/search?keyword=test"),
+      expect.objectContaining({
+        method: "GET",
+      }),
+    );
+  });
+
+  it("falls back to the direct workers.dev origin when the configured base URL points to the public Cloudflare entry", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetcher);
+
+    await entry.fetch(new Request("https://music-cn.ccctw.com/health"), {
+      APP_ENV: "test",
+      RUNTIME: "edgeone",
+      UNIFIED_API_BASE_URL: "https://music.ccctw.com",
+    });
+
+    expect(fetcher).toHaveBeenCalledWith(
+      new URL("https://ccctw-music-api.1934202608.workers.dev/health"),
+      expect.objectContaining({
+        method: "GET",
+      }),
+    );
+  });
 });

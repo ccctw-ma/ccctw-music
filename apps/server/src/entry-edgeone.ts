@@ -1,13 +1,25 @@
 import type { Env } from "./env";
 
 const DEFAULT_UNIFIED_API_BASE_URL = "https://ccctw-music-api.1934202608.workers.dev";
+const PUBLIC_ENTRY_HOSTS = new Set(["music.ccctw.com", "music-cn.ccctw.com"]);
 
 function proxyTarget(request: Request, env: Env) {
-  const baseUrl = new URL(env.UNIFIED_API_BASE_URL ?? DEFAULT_UNIFIED_API_BASE_URL);
   const incomingUrl = new URL(request.url);
+  const baseUrl = new URL(safeUnifiedApiBaseUrl(incomingUrl, env));
   baseUrl.pathname = incomingUrl.pathname;
   baseUrl.search = incomingUrl.search;
   return baseUrl;
+}
+
+function safeUnifiedApiBaseUrl(incomingUrl: URL, env: Env) {
+  const configuredUrl = env.UNIFIED_API_BASE_URL ?? DEFAULT_UNIFIED_API_BASE_URL;
+  const configuredBase = new URL(configuredUrl);
+
+  if (configuredBase.host === incomingUrl.host || PUBLIC_ENTRY_HOSTS.has(configuredBase.host)) {
+    return DEFAULT_UNIFIED_API_BASE_URL;
+  }
+
+  return configuredBase.toString();
 }
 
 async function proxyToUnifiedApi(request: Request, env: Env) {
