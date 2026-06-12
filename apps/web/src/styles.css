@@ -778,6 +778,12 @@ p {
   padding: clamp(28px, 5vw, 64px) clamp(20px, 6vw, 96px) 56px;
   overflow-y: auto;
   scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.detail-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .detail-hero {
@@ -901,7 +907,13 @@ p {
   font-size: clamp(15px, 1.5vw, 18px);
   line-height: 1.6;
   list-style: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   mask-image: linear-gradient(transparent, #000 12%, #000 86%, transparent);
+}
+
+.detail-lyrics::-webkit-scrollbar {
+  display: none;
 }
 
 .detail-lyrics li {
