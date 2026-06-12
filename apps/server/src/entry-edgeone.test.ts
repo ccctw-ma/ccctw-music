@@ -87,4 +87,17 @@ describe("EdgeOne entry", () => {
       }),
     );
   });
+
+  it("redirects GET requests to the unified origin when EdgeOne outbound proxy fetch fails", async () => {
+    const fetcher = vi.fn().mockRejectedValue(new Error("edge outbound timeout"));
+    vi.stubGlobal("fetch", fetcher);
+
+    const response = await entry.fetch(new Request("https://music-cn.ccctw.com/health"), {
+      APP_ENV: "test",
+      RUNTIME: "edgeone",
+    });
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://ccctw-music-api.1934202608.workers.dev/health");
+  });
 });

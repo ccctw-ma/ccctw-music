@@ -2,6 +2,7 @@ import type { Env } from "./env";
 
 const DEFAULT_UNIFIED_API_BASE_URL = "https://ccctw-music-api.1934202608.workers.dev";
 const PUBLIC_ENTRY_HOSTS = new Set(["music.ccctw.com", "music-cn.ccctw.com"]);
+const PROXY_TIMEOUT_MS = 6000;
 
 function proxyTarget(request: Request, env: Env) {
   const incomingUrl = new URL(request.url);
@@ -27,12 +28,31 @@ async function proxyToUnifiedApi(request: Request, env: Env) {
   headers.set("x-ccctw-edgeone-proxy", "1");
   headers.set("x-forwarded-host", new URL(request.url).host);
 
-  const response = await fetch(proxyTarget(request, env), {
-    method: request.method,
-    headers,
-    body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
-    redirect: "manual",
-  });
+  const target = proxyTarget(request, env);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(target, {
+      method: request.method,
+      headers,
+      body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
+      redirect: "manual",
+      signal: controller.signal,
+    });
+  } catch {
+    if (request.method === "GET" || request.method === "HEAD") {
+      return Response.redirect(target, 307);
+    }
+
+    return new Response(JSON.stringify({ error: "Unified API proxy failed" }), {
+      status: 502,
+      headers: { "content-type": "application/json" },
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   return new Response(response.body, {
     status: response.status,
