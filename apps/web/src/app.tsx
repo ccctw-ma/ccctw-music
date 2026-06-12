@@ -17,6 +17,7 @@ import {
   SkipForward,
   ListMusic,
   MessageCircle,
+  Trash2,
   Volume2,
 } from "lucide-react";
 import { useMemo, useRef, useState, type FormEvent, type SyntheticEvent } from "react";
@@ -254,11 +255,13 @@ export function App() {
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [loadingSongId, setLoadingSongId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [view, setView] = useState<"discover" | "favorites" | "queue">("discover");
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const {
     current,
     queue,
+    favorites,
     isPlaying,
     duration,
     currentTime,
@@ -269,6 +272,7 @@ export function App() {
     playPrevious,
     toggleFavorite,
     isFavorite,
+    removeFromQueue,
     setProgress,
   } = usePlayerStore();
 
@@ -474,6 +478,96 @@ export function App() {
     );
   }
 
+  function renderLibrary(mode: "favorites" | "queue") {
+    const list = mode === "favorites" ? favorites : queue;
+    const meta =
+      mode === "favorites"
+        ? { kicker: "Favorites", title: "我的喜欢", empty: "还没有收藏。播放时点击爱心，把喜欢的歌存到这里。" }
+        : { kicker: "Playlist", title: "播放列表", empty: "播放列表是空的。从搜索结果选一首歌就会自动加入。" };
+
+    return (
+      <Card className="result-panel" shadcnName={`library-${mode}`} aria-label={meta.title}>
+        <div className="panel-header">
+          <div>
+            <span className="section-kicker">{meta.kicker}</span>
+            <h2>{meta.title}</h2>
+          </div>
+          <span>{list.length} 首</span>
+        </div>
+
+        {list.length === 0 ? (
+          <div className="empty-state">
+            {mode === "favorites" ? <Heart size={26} /> : <ListMusic size={26} />}
+            <strong>{mode === "favorites" ? "暂无收藏" : "暂无播放列表"}</strong>
+            <p>{meta.empty}</p>
+          </div>
+        ) : (
+          <div className="song-list" role="table" aria-label={meta.title}>
+            {list.map((song, index) => {
+              const key = songKey(song);
+              const selected = currentKey === key;
+
+              return (
+                <div
+                  className={`song-row${selected ? " active" : ""}`}
+                  key={key}
+                  role="row"
+                  aria-label={`${song.name} ${artists(song)}`}
+                >
+                  <Button
+                    className="song-main-action"
+                    variant="row"
+                    shadcnName={`library-play-${key}`}
+                    type="button"
+                    onClick={() => void startSong(song, list)}
+                  >
+                    <span className="song-index">{String(index + 1).padStart(2, "0")}</span>
+                    <span className="song-cover-wrap">
+                      <img loading="lazy" {...coverImageProps(song, 40)} />
+                    </span>
+                    <span className="song-meta">
+                      <strong>{song.name}</strong>
+                      <small>
+                        {artists(song)} · {songQuality(song).sourceLabel}
+                      </small>
+                      {renderQualityBadges(song)}
+                    </span>
+                    <span className="row-play-icon" aria-hidden="true">
+                      {loadingSongId === key ? <Loader2 size={16} className="spin" /> : <Play size={16} />}
+                    </span>
+                    <span className="sr-only">播放 {song.name}</span>
+                  </Button>
+                  <span className="song-album">{song.album?.name ?? "未知专辑"}</span>
+                  {mode === "favorites" ? (
+                    renderSongActions(song)
+                  ) : (
+                    <span className="song-actions">
+                      <Button
+                        className="icon-action"
+                        variant="icon"
+                        shadcnName={`remove-${key}`}
+                        type="button"
+                        aria-label={`从播放列表移除 ${song.name}`}
+                        disabled={selected}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          removeFromQueue(key);
+                        }}
+                      >
+                        <Trash2 size={15} />
+                      </Button>
+                    </span>
+                  )}
+                  <span className="song-duration">{formatTime(song.duration)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+    );
+  }
+
   const displaySong = current ?? featuredSongs[0];
   const progressPercent = duration ? Math.min(100, (currentTime / duration) * 100) : isPlaying ? 12 : 0;
   const progressValue = duration ? Math.min(currentTime, duration) : 0;
@@ -511,10 +605,35 @@ export function App() {
           <strong>CCCTW Music</strong>
         </a>
         <nav className="rail-nav" aria-label="音乐导航">
-          <a className="active" href="#discover" aria-label="发现音乐">
+          <button
+            type="button"
+            className={view === "discover" ? "active" : ""}
+            aria-current={view === "discover"}
+            onClick={() => setView("discover")}
+          >
             <Home size={18} />
             <span>推荐</span>
-          </a>
+          </button>
+          <button
+            type="button"
+            className={view === "favorites" ? "active" : ""}
+            aria-current={view === "favorites"}
+            onClick={() => setView("favorites")}
+          >
+            <Heart size={18} />
+            <span>我的喜欢</span>
+            {favorites.length > 0 ? <small>{favorites.length}</small> : null}
+          </button>
+          <button
+            type="button"
+            className={view === "queue" ? "active" : ""}
+            aria-current={view === "queue"}
+            onClick={() => setView("queue")}
+          >
+            <ListMusic size={18} />
+            <span>播放列表</span>
+            {queue.length > 0 ? <small>{queue.length}</small> : null}
+          </button>
         </nav>
       </aside>
 
@@ -610,73 +729,77 @@ export function App() {
               </div>
             </Card>
 
-            <Card className="result-panel" shadcnName="search-results" aria-label="Search">
-              <div className="panel-header">
-                <div>
-                  <span className="section-kicker">Search</span>
-                  <h2>搜索结果</h2>
-                </div>
-                <span>{searchQuery.isFetching ? "同步中…" : `${songs.length} 首`}</span>
-              </div>
-              {searchQuery.isError ? <strong className="playback-error">搜索暂时不可用，请稍后再试。</strong> : null}
-
-              <div className="song-table-head" role="row">
-                <span>#</span>
-                <span>标题</span>
-                <span>专辑</span>
-                <span>喜欢</span>
-                <span>时长</span>
-              </div>
-              <div className="song-list" role="table" aria-label="歌曲列表">
-                {songs.map((song, index) => {
-                  const key = songKey(song);
-                  const selected = currentKey === key;
-
-                  return (
-                    <div
-                      className={`song-row${selected ? " active" : ""}`}
-                      key={key}
-                      role="row"
-                      aria-label={`${song.name} ${artists(song)}`}
-                    >
-                      <Button
-                        className="song-main-action"
-                        variant="row"
-                        shadcnName={`play-${key}`}
-                        type="button"
-                        onClick={() => void startSong(song, songs)}
-                      >
-                        <span className="song-index">{String(index + 1).padStart(2, "0")}</span>
-                        <span className="song-cover-wrap">
-                          <img loading="lazy" {...coverImageProps(song, 40)} />
-                        </span>
-                        <span className="song-meta">
-                          <strong>{song.name}</strong>
-                          <small>
-                            {artists(song)} · {songQuality(song).sourceLabel}
-                          </small>
-                          {renderQualityBadges(song)}
-                        </span>
-                        <span className="row-play-icon" aria-hidden="true">
-                          {loadingSongId === key ? <Loader2 size={16} className="spin" /> : <Play size={16} />}
-                        </span>
-                        <span className="sr-only">播放 {song.name}</span>
-                      </Button>
-                      <span className="song-album">{song.album?.name ?? "未知专辑"}</span>
-                      {renderSongActions(song)}
-                      <span className="song-duration">{formatTime(song.duration)}</span>
-                    </div>
-                  );
-                })}
-                {!searchQuery.isFetching && songs.length === 0 ? (
-                  <div className="empty-state">
-                    <Search size={26} />
-                    <strong>没找到结果</strong>
-                    <p>换个歌名、歌手或专辑再试一次。</p>
+            {view === "discover" ? (
+              <Card className="result-panel" shadcnName="search-results" aria-label="Search">
+                <div className="panel-header">
+                  <div>
+                    <span className="section-kicker">Search</span>
+                    <h2>搜索结果</h2>
                   </div>
-                ) : null}
-              </div>
-            </Card>
+                  <span>{searchQuery.isFetching ? "同步中…" : `${songs.length} 首`}</span>
+                </div>
+                {searchQuery.isError ? <strong className="playback-error">搜索暂时不可用，请稍后再试。</strong> : null}
+
+                <div className="song-table-head" role="row">
+                  <span>#</span>
+                  <span>标题</span>
+                  <span>专辑</span>
+                  <span>喜欢</span>
+                  <span>时长</span>
+                </div>
+                <div className="song-list" role="table" aria-label="歌曲列表">
+                  {songs.map((song, index) => {
+                    const key = songKey(song);
+                    const selected = currentKey === key;
+
+                    return (
+                      <div
+                        className={`song-row${selected ? " active" : ""}`}
+                        key={key}
+                        role="row"
+                        aria-label={`${song.name} ${artists(song)}`}
+                      >
+                        <Button
+                          className="song-main-action"
+                          variant="row"
+                          shadcnName={`play-${key}`}
+                          type="button"
+                          onClick={() => void startSong(song, songs)}
+                        >
+                          <span className="song-index">{String(index + 1).padStart(2, "0")}</span>
+                          <span className="song-cover-wrap">
+                            <img loading="lazy" {...coverImageProps(song, 40)} />
+                          </span>
+                          <span className="song-meta">
+                            <strong>{song.name}</strong>
+                            <small>
+                              {artists(song)} · {songQuality(song).sourceLabel}
+                            </small>
+                            {renderQualityBadges(song)}
+                          </span>
+                          <span className="row-play-icon" aria-hidden="true">
+                            {loadingSongId === key ? <Loader2 size={16} className="spin" /> : <Play size={16} />}
+                          </span>
+                          <span className="sr-only">播放 {song.name}</span>
+                        </Button>
+                        <span className="song-album">{song.album?.name ?? "未知专辑"}</span>
+                        {renderSongActions(song)}
+                        <span className="song-duration">{formatTime(song.duration)}</span>
+                      </div>
+                    );
+                  })}
+                  {!searchQuery.isFetching && songs.length === 0 ? (
+                    <div className="empty-state">
+                      <Search size={26} />
+                      <strong>没找到结果</strong>
+                      <p>换个歌名、歌手或专辑再试一次。</p>
+                    </div>
+                  ) : null}
+                </div>
+              </Card>
+            ) : (
+              renderLibrary(view)
+            )}
           </div>
         </section>
       </section>

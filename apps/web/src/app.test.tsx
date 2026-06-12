@@ -377,6 +377,39 @@ describe("App", () => {
     await userEvent.click(screen.getAllByRole("button", { name: "收藏 晴天" })[0]);
     expect(usePlayerStore.getState().isFavorite(songs[0])).toBe(true);
     expect(screen.getAllByRole("button", { name: "取消收藏 晴天" })[0]).not.toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: /我的喜欢/ }));
+    expect(screen.getByRole("heading", { name: "我的喜欢" })).not.toBeNull();
+    expect(screen.getAllByText("晴天").length).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByRole("button", { name: /播放 晴天/ }));
+    expect(apiMocks.playableUrl).toHaveBeenCalledWith("migu", "1");
+  });
+
+  it("shows empty states for favorites and playlist views", async () => {
+    renderApp();
+
+    await userEvent.click(screen.getByRole("button", { name: "我的喜欢" }));
+    expect(screen.getByRole("heading", { name: "我的喜欢" })).not.toBeNull();
+    expect(screen.getByText("暂无收藏")).not.toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "播放列表" }));
+    expect(screen.getByRole("heading", { name: "播放列表" })).not.toBeNull();
+    expect(screen.getByText("暂无播放列表")).not.toBeNull();
+  });
+
+  it("shows and edits the current playlist from the rail", async () => {
+    await selectFirstSong();
+
+    await userEvent.click(screen.getByRole("button", { name: /播放列表/ }));
+
+    expect(screen.getByRole("heading", { name: "播放列表" })).not.toBeNull();
+    expect(screen.getAllByText("夜曲").length).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByRole("button", { name: "从播放列表移除 夜曲" }));
+
+    expect(screen.queryByRole("button", { name: "从播放列表移除 夜曲" })).toBeNull();
+    expect(usePlayerStore.getState().queue.map((song) => song.id)).toEqual(["1"]);
   });
 
   it("moves to next and previous songs from the bottom player", async () => {
@@ -491,7 +524,7 @@ describe("App", () => {
       .mockResolvedValueOnce({ source: "migu", url: null })
       .mockResolvedValueOnce({ source: "migu", url: "https://cdn.example.com/silent.mp3" });
     renderApp();
-    expect(screen.getAllByRole("button", { name: /播放/ })[0]).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: /^播放$/ })).toHaveProperty("disabled", true);
 
     await userEvent.click(await screen.findByRole("button", { name: /播放 静音曲/ }));
     expect(await screen.findByText("当前搜索结果暂时没有可播放音源，已尝试前端直连和服务端兜底。")).not.toBeNull();
@@ -579,7 +612,7 @@ describe("App", () => {
     renderApp();
     usePlayerStore.getState().setCurrent(songs[0]);
 
-    await userEvent.click(screen.getAllByRole("button", { name: /播放/ })[0]);
+    await userEvent.click(screen.getByRole("button", { name: /^播放$/ }));
 
     await waitFor(() => expect(apiMocks.playableUrl).toHaveBeenCalledWith("migu", "1"));
   });

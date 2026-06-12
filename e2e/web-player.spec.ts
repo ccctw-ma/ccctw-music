@@ -169,6 +169,13 @@ test("searches, plays music, screenshots each compact page state", async ({ page
 
   await page.getByRole("button", { name: "收藏 晴天" }).first().click();
   await expect(page.getByRole("button", { name: "取消收藏 晴天" }).first()).toBeVisible();
+  await page.getByRole("button", { name: /我的喜欢/ }).click();
+  await expect(page.getByRole("heading", { name: "我的喜欢" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /播放 晴天/ }).first()).toBeVisible();
+  await page.getByRole("button", { name: /播放列表/ }).click();
+  await expect(page.getByRole("heading", { name: "播放列表" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /播放 夜曲/ }).first()).toBeVisible();
+  await page.getByRole("button", { name: "推荐" }).click();
 
   await page.getByRole("button", { name: "底部切下一曲" }).click();
   await expect(page.getByRole("heading", { name: "夜曲" }).first()).toBeVisible();

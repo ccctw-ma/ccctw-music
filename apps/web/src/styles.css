@@ -184,16 +184,23 @@ p {
 }
 
 .rail-nav a,
+.rail-nav button,
 .sidebar-pill,
 .playlist-shortcut {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   min-height: 42px;
   padding: 0 10px;
+  border: 0;
   border-radius: 8px;
   color: var(--muted);
+  font: inherit;
+  text-align: left;
   text-decoration: none;
+  background: transparent;
+  cursor: pointer;
   transition:
     color 160ms ease,
     background 160ms ease;
@@ -201,6 +208,8 @@ p {
 
 .rail-nav a:hover,
 .rail-nav a.active,
+.rail-nav button:hover,
+.rail-nav button.active,
 .sidebar-pill:hover,
 .sidebar-pill.active,
 .playlist-shortcut:hover {
@@ -209,9 +218,17 @@ p {
 }
 
 .rail-nav a.active,
+.rail-nav button.active,
 .sidebar-pill.active {
   color: #fff;
   background: var(--netease-red);
+}
+
+.rail-nav small {
+  margin-left: auto;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .sidebar-section {
