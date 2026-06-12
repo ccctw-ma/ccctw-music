@@ -1,17 +1,10 @@
-/**
- * EdgeOne Edge Function - API v1 catch-all proxy.
- *
- * Domestic EdgeOne traffic keeps the same /v1/* paths and proxies them to the
- * unified Cloudflare Worker backend, where KV/D1/R2 remain the source of truth.
- */
-import edgeoneEntry from "../../apps/server/src/entry-edgeone";
-import type { Env } from "../../apps/server/src/env";
+const UNIFIED_API_BASE_URL = "https://ccctw-music-api.1934202608.workers.dev";
 
-interface EdgeOneContext {
-  request: Request;
-  env: Env;
-}
+export default function onRequest({ request }: { request: Request }) {
+  const incomingUrl = new URL(request.url);
+  const targetUrl = new URL(UNIFIED_API_BASE_URL);
+  targetUrl.pathname = incomingUrl.pathname;
+  targetUrl.search = incomingUrl.search;
 
-export default function onRequest(context: EdgeOneContext) {
-  return edgeoneEntry.fetch(context.request, context.env);
+  return Response.redirect(targetUrl, 307);
 }
