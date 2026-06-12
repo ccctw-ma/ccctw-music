@@ -12,13 +12,40 @@ function artistsFromNames(names?: string): { name: string }[] {
     : [];
 }
 
+function normalizeCoverUrl(url?: unknown): string | undefined {
+  if (typeof url !== "string" || !url.trim()) {
+    return undefined;
+  }
+  const trimmed = url.trim();
+  if (trimmed.startsWith("//")) {
+    return `https:${trimmed}`;
+  }
+  if (trimmed.startsWith("http://")) {
+    return trimmed.replace(/^http:\/\//, "https://");
+  }
+  return trimmed;
+}
+
 function miguCoverUrl(raw: UnknownRecord): string | undefined {
   const albumImages = raw.albumImgs;
   if (Array.isArray(albumImages)) {
     const image = albumImages.find((item) => item?.imgSizeType === "03") ?? albumImages.at(-1);
-    return image?.img ?? image?.webpImg ?? image?.imgOri;
+    return normalizeCoverUrl(image?.img ?? image?.webpImg ?? image?.imgOri);
   }
-  return raw.cover;
+  return normalizeCoverUrl(raw.cover ?? raw.coverUrl ?? raw.picUrl);
+}
+
+function neteaseCoverUrl(raw: UnknownRecord, album: UnknownRecord): string | undefined {
+  return normalizeCoverUrl(
+    album.picUrl ??
+      album.img1v1Url ??
+      album.coverUrl ??
+      raw.picUrl ??
+      raw.coverUrl ??
+      raw.albumPic ??
+      raw.album?.picUrl ??
+      raw.al?.picUrl,
+  );
 }
 
 function miguDuration(raw: UnknownRecord): number | undefined {
@@ -97,6 +124,7 @@ export function formatMiguSong(raw: UnknownRecord): Song {
 export function formatNeteaseSong(raw: UnknownRecord): Song {
   const artists = raw.artists ?? raw.ar ?? [];
   const album = raw.album ?? raw.al ?? {};
+  const coverUrl = neteaseCoverUrl(raw, album);
 
   return {
     id: String(raw.id ?? ""),
@@ -108,13 +136,13 @@ export function formatNeteaseSong(raw: UnknownRecord): Song {
     album: {
       id: album.id ? String(album.id) : undefined,
       name: album.name,
-      coverUrl: album.picUrl ?? album.picUrl,
+      coverUrl,
       source: "netease",
       raw: album,
     },
     duration: typeof raw.duration === "number" ? raw.duration / 1000 : undefined,
     playableUrl: null,
-    coverUrl: album.picUrl ?? null,
+    coverUrl: coverUrl ?? null,
     quality: qualityFor("netease", {
       playable: false,
       high: true,
@@ -127,6 +155,7 @@ export function formatQqSong(raw: UnknownRecord): Song {
   const singers = raw.singer ?? [];
   const albumMid = raw.albummid ?? raw.album?.mid;
   const songMid = raw.songmid ?? raw.mid;
+  const coverUrl = albumMid ? `https://y.qq.com/music/photo_new/T002R300x300M000${albumMid}.jpg` : undefined;
 
   return {
     id: String(songMid ?? raw.songid ?? raw.id ?? ""),
@@ -138,13 +167,13 @@ export function formatQqSong(raw: UnknownRecord): Song {
     album: {
       id: albumMid ? String(albumMid) : undefined,
       name: raw.albumname ?? raw.album?.name,
-      coverUrl: albumMid ? `https://y.qq.com/music/photo_new/T002R300x300M000${albumMid}.jpg` : undefined,
+      coverUrl,
       source: "qq",
       raw: raw.album ?? raw,
     },
     duration: typeof raw.interval === "number" ? raw.interval : undefined,
     playableUrl: null,
-    coverUrl: albumMid ? `https://y.qq.com/music/photo_new/T002R300x300M000${albumMid}.jpg` : null,
+    coverUrl: coverUrl ?? null,
     quality: qualityFor("qq", {
       playable: false,
       high: true,

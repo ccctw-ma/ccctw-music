@@ -148,13 +148,13 @@ async function selectFirstSong() {
 }
 
 describe("App", () => {
-  it("renders browse lanes, search, library, queue, lyrics, and player regions", async () => {
+  it("renders search, library, queue, lyrics, and player regions without unused featured or podcast modules", async () => {
     renderApp();
 
-    expect(await screen.findByText("新歌速递")).not.toBeNull();
-    expect(screen.getByText("华语夜航")).not.toBeNull();
-    expect(screen.getByText("城市电子")).not.toBeNull();
-    expect(screen.getByText("复古浪漫")).not.toBeNull();
+    await screen.findByRole("button", { name: /播放 晴天/ });
+    expect(screen.queryByText("精选")).toBeNull();
+    expect(screen.queryByText("播客")).toBeNull();
+    expect(screen.queryByText("新歌速递")).toBeNull();
     expect(screen.getByRole("search", { name: "音乐搜索" })).not.toBeNull();
     expect(screen.getByRole("region", { name: "Library" })).not.toBeNull();
     expect(screen.getByRole("region", { name: "Queue" })).not.toBeNull();
@@ -475,7 +475,38 @@ describe("App", () => {
     for (const image of coverImages) {
       expect(image.getAttribute("width")).not.toBeNull();
       expect(image.getAttribute("height")).not.toBeNull();
+      expect(image.getAttribute("src")).not.toBe("/favicon.svg");
     }
+  });
+
+  it("falls back to generated album art when upstream cover images fail", async () => {
+    renderApp();
+    usePlayerStore.getState().setCurrent({
+      ...songs[0],
+      name: "晴天 & 夜曲",
+      coverUrl: "https://cdn.example.com/broken-cover.jpg",
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole("presentation").some((image) => image.getAttribute("src")?.includes("broken-cover")),
+      ).toBe(true);
+    });
+    const brokenCover = screen
+      .getAllByRole("presentation")
+      .find((image) => image.getAttribute("src")?.includes("broken-cover")) as HTMLImageElement;
+
+    fireEvent.error(brokenCover);
+
+    expect(brokenCover.getAttribute("src")).toContain("data:image/svg+xml");
+  });
+
+  it("seeks playback from the draggable progress slider", async () => {
+    await selectFirstSong();
+
+    fireEvent.change(screen.getByTestId("shadcn-slider:mini-progress"), { target: { value: "42" } });
+
+    expect(usePlayerStore.getState().currentTime).toBe(42);
   });
 
   it("gives the compact mini player an accessible play label", async () => {

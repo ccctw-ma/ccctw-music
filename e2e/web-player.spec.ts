@@ -129,8 +129,8 @@ test("searches, organizes library, controls queue, and displays lyrics", async (
   await page.goto("/");
 
   await expect(page.getByRole("heading", { name: "我喜欢的音乐" })).toBeVisible();
-  await expect(page.getByText("新歌速递")).toBeVisible();
-  await expect(page.getByText("华语夜航")).toBeVisible();
+  await expect(page.getByText("精选")).toHaveCount(0);
+  await expect(page.getByText("播客")).toHaveCount(0);
   await expect(page.getByRole("region", { name: "Library" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Queue" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Lyrics" })).toBeVisible();
@@ -168,13 +168,21 @@ test("searches, organizes library, controls queue, and displays lyrics", async (
 
   await page.evaluate(() => {
     const audio = document.querySelector('[data-testid="audio-player"]') as HTMLAudioElement;
-    Object.defineProperty(audio, "currentTime", { configurable: true, value: 46 });
+    Object.defineProperty(audio, "currentTime", { configurable: true, writable: true, value: 46 });
     Object.defineProperty(audio, "duration", { configurable: true, value: 120 });
     audio.dispatchEvent(new Event("timeupdate", { bubbles: true }));
   });
   await expect(page.locator(".lyric-list li.active", { hasText: "副歌来了" })).toBeVisible();
-  await expect(page.getByLabel(/0:46 \/ 2:00/)).toBeVisible();
+  await expect(page.getByTestId("shadcn-slider:mini-progress")).toHaveAttribute("aria-label", /0:46 \/ 2:00/);
   await expect(page.getByText("0:46").first()).toBeVisible();
+  await page.getByTestId("shadcn-slider:mini-progress").evaluate((element) => {
+    const slider = element as HTMLInputElement;
+    const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+    valueSetter?.call(slider, "58");
+    slider.dispatchEvent(new Event("input", { bubbles: true }));
+    slider.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await expect(page.getByText("0:58").first()).toBeVisible();
 
   await page.getByRole("button", { name: "取消收藏 晴天" }).first().click();
   await expect(page.getByRole("button", { name: "收藏 晴天" }).first()).toBeVisible();

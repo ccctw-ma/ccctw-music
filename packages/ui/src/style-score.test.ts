@@ -3,7 +3,6 @@ import { scoreUiSnapshot, type UiStyleSnapshot } from "./style-score";
 
 const completeMusicSnapshot: UiStyleSnapshot = {
   features: {
-    browse: true,
     search: true,
     library: true,
     queue: true,

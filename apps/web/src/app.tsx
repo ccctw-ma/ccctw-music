@@ -4,7 +4,6 @@ import { createMusicApiClient } from "@ccctw-music/api-client";
 import { useQuery } from "@tanstack/react-query";
 import {
   Clock3,
-  Compass,
   Download,
   Heart,
   Home,
@@ -16,7 +15,6 @@ import {
   Pause,
   Play,
   Plus,
-  Radio,
   Repeat2,
   Search,
   Shuffle,
@@ -25,7 +23,7 @@ import {
   Trash2,
   Volume2,
 } from "lucide-react";
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent, type SyntheticEvent } from "react";
 import { Badge, Button, Card, Input, Slider } from "./components/ui";
 import { resolveDirectPlayableUrl, searchDirectMusic } from "./lib/direct-music-search";
 import { songKey, usePlayerStore } from "./stores/player-store";
@@ -35,7 +33,6 @@ const apiClient = createMusicApiClient({
 });
 
 const SOURCES = ["migu", "netease", "qq"] as const;
-const BROWSE_LANES = ["新歌速递", "华语夜航", "城市电子", "复古浪漫"];
 const STUDIO_MIX_ID = "studio-mix";
 
 function bestScore(result: SearchResult) {
@@ -106,6 +103,53 @@ function coverProps(size: number) {
   };
 }
 
+function escapeSvgText(value: string) {
+  return value.replace(/[&<>"']/g, (char) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&apos;",
+    };
+    return entities[char];
+  });
+}
+
+function fallbackCoverUrl(song?: Song, size = 512) {
+  const title = song?.name?.trim() || "CCCTW";
+  const artist = escapeSvgText(artists(song));
+  const initials = escapeSvgText(Array.from(title).slice(0, 2).join(""));
+  const hue = Array.from(`${song?.source ?? ""}:${song?.id ?? title}`).reduce(
+    (total, char) => total + char.charCodeAt(0),
+    0,
+  );
+  const primary = `hsl(${hue % 360} 92% 54%)`;
+  const secondary = `hsl(${(hue + 46) % 360} 88% 38%)`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+<defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="${primary}"/><stop offset="1" stop-color="${secondary}"/></linearGradient></defs>
+<rect width="100%" height="100%" fill="url(#g)"/>
+<circle cx="${size * 0.7}" cy="${size * 0.28}" r="${size * 0.28}" fill="rgba(255,255,255,0.18)"/>
+<circle cx="${size * 0.25}" cy="${size * 0.78}" r="${size * 0.22}" fill="rgba(2,6,23,0.18)"/>
+<text x="50%" y="48%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="Inter,Arial,sans-serif" font-size="${size * 0.24}" font-weight="800">${initials}</text>
+<text x="50%" y="69%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,0.76)" font-family="Inter,Arial,sans-serif" font-size="${size * 0.06}" font-weight="600">${artist}</text>
+</svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function coverImageProps(song: Song | undefined, size: number) {
+  const fallback = fallbackCoverUrl(song, size);
+  return {
+    ...coverProps(size),
+    src: song?.coverUrl || fallback,
+    onError: (event: SyntheticEvent<HTMLImageElement>) => {
+      if (event.currentTarget.src !== fallback) {
+        event.currentTarget.src = fallback;
+      }
+    },
+  };
+}
+
 function playbackErrorMessage(error: unknown) {
   if (error instanceof Error && "status" in error && error.message) {
     return error.message;
@@ -148,7 +192,6 @@ export function App() {
     play,
     pause,
     loadQueue,
-    enqueue,
     removeFromQueue,
     playNext,
     playPrevious,
@@ -181,15 +224,6 @@ export function App() {
   const lyric = current?.lyric ?? lyricQuery.data;
   const lyricLines = lyric?.lines ?? [];
   const activeLine = activeLyricId(lyricLines, currentTime);
-
-  const browseLanes = useMemo(
-    () =>
-      BROWSE_LANES.map((name, index) => ({
-        name,
-        songs: songs.slice(index, index + 4).length ? songs.slice(index, index + 4) : featuredSongs,
-      })),
-    [featuredSongs, songs],
-  );
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -329,6 +363,15 @@ export function App() {
     }
   }
 
+  function handleSeek(value: number) {
+    if (!duration || !audioRef.current) {
+      return;
+    }
+    const nextTime = Math.min(duration, Math.max(0, value));
+    audioRef.current.currentTime = nextTime;
+    setProgress(nextTime, duration);
+  }
+
   function renderSongActions(song: Song) {
     const favorite = isFavorite(song);
     return (
@@ -374,9 +417,10 @@ export function App() {
     );
   }
 
-  const currentCover = current?.coverUrl || featuredSongs[0]?.coverUrl || "/favicon.svg";
+  const displaySong = current ?? featuredSongs[0];
   const progressPercent = duration ? Math.min(100, (currentTime / duration) * 100) : isPlaying ? 12 : 0;
-  const heroSong = current ?? featuredSongs[0];
+  const progressValue = duration ? Math.min(currentTime, duration) : 0;
+  const heroSong = displaySong;
 
   return (
     <main className="music-app" data-testid="ui-style-root">
@@ -412,14 +456,6 @@ export function App() {
           <a className="active" href="#discover" aria-label="发现音乐">
             <Home size={18} />
             <span>推荐</span>
-          </a>
-          <a href="#featured" aria-label="精选音乐">
-            <Compass size={18} />
-            <span>精选</span>
-          </a>
-          <a href="#radio" aria-label="播客">
-            <Radio size={18} />
-            <span>播客</span>
           </a>
           <a href="#library" aria-label="音乐库">
             <Library size={18} />
@@ -496,7 +532,7 @@ export function App() {
               aria-label="Now Playing"
             >
               <div className="cover-orbit">
-                <img src={currentCover} {...coverProps(270)} />
+                <img {...coverImageProps(displaySong, 270)} />
               </div>
               <div className="now-copy">
                 <span className="section-kicker">Now Playing</span>
@@ -545,35 +581,6 @@ export function App() {
               </div>
             </Card>
 
-            <section className="browse-panel" aria-label="Browse">
-              {browseLanes.map((lane) => (
-                <Card as="article" className="browse-lane" shadcnName={`browse-${lane.name}`} key={lane.name}>
-                  <div className="panel-header compact">
-                    <h2>{lane.name}</h2>
-                    <span>{lane.songs.length || "待发现"}</span>
-                  </div>
-                  <div className="browse-cards">
-                    {lane.songs.map((song) => (
-                      <Button
-                        key={`${lane.name}-${songKey(song)}`}
-                        variant="ghost"
-                        shadcnName={`browse-${lane.name}-${songKey(song)}`}
-                        type="button"
-                        onClick={() => void startSong(song, songs)}
-                      >
-                        <img src={song.coverUrl || "/favicon.svg"} loading="lazy" {...coverProps(220)} />
-                        <strong>{song.name}</strong>
-                        <small>{artists(song)}</small>
-                      </Button>
-                    ))}
-                    {!searchQuery.isFetching && lane.songs.length === 0 ? (
-                      <p>这一栏暂时安静，换个关键词唤醒它。</p>
-                    ) : null}
-                  </div>
-                </Card>
-              ))}
-            </section>
-
             <Card className="result-panel" shadcnName="search-results" aria-label="Search">
               <div className="panel-header">
                 <div>
@@ -612,7 +619,7 @@ export function App() {
                       >
                         <span className="song-index">{String(index + 1).padStart(2, "0")}</span>
                         <span className="song-cover-wrap">
-                          <img src={song.coverUrl || "/favicon.svg"} loading="lazy" {...coverProps(40)} />
+                          <img loading="lazy" {...coverImageProps(song, 40)} />
                         </span>
                         <span className="song-meta">
                           <strong>{song.name}</strong>
@@ -646,16 +653,27 @@ export function App() {
           <aside className="right-stack">
             <Card className="player-panel" shadcnName="player" aria-label="Player">
               <div className="player-cover">
-                <img className="cover" src={current?.coverUrl || currentCover} {...coverProps(420)} />
+                <img className="cover" {...coverImageProps(displaySong, 420)} />
                 <span className={isPlaying ? "pulse-dot active" : "pulse-dot"} />
               </div>
               <span className="section-kicker">{songQuality(current).sourceLabel}</span>
               <h2>{current?.name ?? "未播放"}</h2>
               <p>{currentArtists}</p>
-              <div className="progress-shell" aria-label={`${formatTime(currentTime)} / ${formatTime(duration)}`}>
-                <span
-                  style={{ width: `${duration ? Math.min(100, (currentTime / duration) * 100) : isPlaying ? 48 : 0}%` }}
+              <div className="progress-control">
+                <Slider
+                  className="progress-slider"
+                  shadcnName="player-progress"
+                  aria-label={`播放进度 ${formatTime(currentTime)} / ${formatTime(duration)}`}
+                  min="0"
+                  max={duration || 0}
+                  step="1"
+                  value={progressValue}
+                  disabled={!current || !duration}
+                  onChange={(event) => handleSeek(Number(event.currentTarget.value))}
                 />
+                <div className="progress-shell" aria-hidden="true">
+                  <span style={{ width: `${duration ? Math.min(100, (currentTime / duration) * 100) : 0}%` }} />
+                </div>
               </div>
               <div className="transport">
                 <Button
@@ -840,7 +858,7 @@ export function App() {
 
       <Card as="footer" className="mini-player" shadcnName="mini-player" aria-label="底部播放器">
         <div className="bar-song">
-          <img src={current?.coverUrl || currentCover} {...coverProps(56)} />
+          <img {...coverImageProps(displaySong, 56)} />
           <div>
             <strong>{current?.name ?? "选择歌曲"}</strong>
             <span>{currentArtists}</span>
@@ -895,8 +913,21 @@ export function App() {
           </div>
           <div className="bar-progress">
             <span>{formatTime(currentTime)}</span>
-            <div className="progress-shell">
-              <span style={{ width: `${progressPercent}%` }} />
+            <div className="progress-control">
+              <Slider
+                className="progress-slider"
+                shadcnName="mini-progress"
+                aria-label={`底部播放进度 ${formatTime(currentTime)} / ${formatTime(duration)}`}
+                min="0"
+                max={duration || 0}
+                step="1"
+                value={progressValue}
+                disabled={!current || !duration}
+                onChange={(event) => handleSeek(Number(event.currentTarget.value))}
+              />
+              <div className="progress-shell" aria-hidden="true">
+                <span style={{ width: `${progressPercent}%` }} />
+              </div>
             </div>
             <span>{formatTime(duration)}</span>
           </div>

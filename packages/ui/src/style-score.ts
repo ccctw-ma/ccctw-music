@@ -1,6 +1,5 @@
 export interface UiStyleSnapshot {
   features: {
-    browse: boolean;
     search: boolean;
     library: boolean;
     queue: boolean;
@@ -51,7 +50,6 @@ export interface UiStyleScore {
 }
 
 const REQUIRED_FEATURES: Array<keyof UiStyleSnapshot["features"]> = [
-  "browse",
   "search",
   "library",
   "queue",

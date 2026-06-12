@@ -94,7 +94,6 @@ async function collectSnapshot(page: Page): Promise<UiStyleSnapshot> {
 
     return {
       features: {
-        browse: text.includes("新歌速递") && text.includes("华语夜航"),
         search: Boolean(root.querySelector('[role="search"]')),
         library: text.includes("Library"),
         queue: text.includes("Queue"),
@@ -111,9 +110,9 @@ async function collectSnapshot(page: Page): Promise<UiStyleSnapshot> {
         hasGenericPurpleGradient: /purple|168, 85, 247|139, 92, 246/i.test(root.outerHTML),
       },
       composition: {
-        cardCount: root.querySelectorAll("section, article, aside, .now-card, .player-panel, .browse-lane").length,
+        cardCount: root.querySelectorAll("section, article, aside, .now-card, .player-panel").length,
         interactiveCount: root.querySelectorAll("button, input, a").length,
-        hasAsymmetry: Boolean(root.querySelector(".listen-layout, .right-stack, .browse-panel")),
+        hasAsymmetry: Boolean(root.querySelector(".listen-layout, .right-stack")),
         hasPersistentPlayer: Boolean(root.querySelector(".mini-player")),
         hasMotion: Boolean(root.querySelector(".wave-stack, .pulse-dot, .spin")),
       },
