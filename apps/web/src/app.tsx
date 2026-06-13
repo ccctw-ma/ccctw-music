@@ -22,14 +22,13 @@ import {
 } from "lucide-react";
 import { useMemo, useRef, useState, type FormEvent, type SyntheticEvent } from "react";
 import { Button, Card, Input, Slider } from "./components/ui";
-import { resolveDirectPlayableUrl, searchDirectMusic } from "./lib/direct-music-search";
+import { resolveDirectPlayableUrl } from "./lib/direct-music-search";
 import { songKey, usePlayerStore } from "./stores/player-store";
 
 const apiClient = createMusicApiClient({
   baseUrl: import.meta.env.PUBLIC_API_BASE_URL ?? "/api",
 });
 
-const DOMESTIC_SOURCES = ["migu", "netease", "qq"] as const;
 const SOURCES = ["migu", "netease", "qq", "itunes", "deezer"] as const;
 
 function bestScore(result: SearchResult) {
@@ -44,37 +43,9 @@ function resultPlaybackPriority(result: SearchResult) {
   return result.songs.some(isLikelyResolvable) ? 100 : 0;
 }
 
-async function searchWithBrowserFirst(keyword: string) {
-  const direct = await searchDirectMusic({ keyword, sources: [...SOURCES] });
-  const serverResults = await apiClient.search({ keyword, sources: [...DOMESTIC_SOURCES] }).catch(() => []);
-  const serverBySource = new Map(serverResults.map((result) => [result.source, result]));
-  const directBySource = new Map(direct.results.map((result) => [result.source, result]));
-  const merged = SOURCES.flatMap((source) => {
-    const directResult = directBySource.get(source);
-    const serverResult = serverBySource.get(source);
-    const songsByKey = new Map<string, Song>();
-
-    for (const song of directResult?.songs ?? []) {
-      songsByKey.set(songKey(song), song);
-    }
-    for (const song of serverResult?.songs ?? []) {
-      const existing = songsByKey.get(songKey(song));
-      songsByKey.set(songKey(song), existing && (existing.coverUrl || !song.coverUrl) ? existing : song);
-    }
-
-    const songs = [...songsByKey.values()];
-    return songs.length
-      ? [
-          {
-            source,
-            total: Math.max(directResult?.total ?? 0, serverResult?.total ?? 0, songs.length),
-            songs,
-          },
-        ]
-      : [];
-  });
-
-  return merged.sort(
+async function searchAcrossSources(keyword: string) {
+  const results = await apiClient.search({ keyword, sources: [...SOURCES] });
+  return results.sort(
     (left, right) => resultPlaybackPriority(right) - resultPlaybackPriority(left) || bestScore(right) - bestScore(left),
   );
 }
@@ -295,7 +266,7 @@ export function App() {
 
   const searchQuery = useQuery({
     queryKey: ["search", submittedKeyword],
-    queryFn: () => searchWithBrowserFirst(submittedKeyword),
+    queryFn: () => searchAcrossSources(submittedKeyword),
     enabled: submittedKeyword.trim().length > 0,
   });
 

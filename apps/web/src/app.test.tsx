@@ -10,7 +10,6 @@ const apiMocks = vi.hoisted(() => ({
 }));
 
 const directMocks = vi.hoisted(() => ({
-  searchDirectMusic: vi.fn(),
   resolveDirectPlayableUrl: vi.fn(),
 }));
 
@@ -23,7 +22,6 @@ vi.mock("@ccctw-music/api-client", () => ({
 }));
 
 vi.mock("./lib/direct-music-search", () => ({
-  searchDirectMusic: directMocks.searchDirectMusic,
   resolveDirectPlayableUrl: directMocks.resolveDirectPlayableUrl,
 }));
 
@@ -79,10 +77,6 @@ const qqSong = {
 beforeEach(() => {
   localStorage.clear();
   usePlayerStore.setState(usePlayerStore.getInitialState(), true);
-  directMocks.searchDirectMusic.mockResolvedValue({
-    results: [],
-    failedSources: ["migu", "netease", "qq"],
-  });
   directMocks.resolveDirectPlayableUrl.mockResolvedValue(null);
   apiMocks.search.mockResolvedValue([{ source: "migu", total: songs.length, songs }]);
   apiMocks.playableUrl.mockResolvedValue({ source: "migu", url: "https://cdn.example.com/qingtian.mp3" });
@@ -116,7 +110,6 @@ afterEach(() => {
   apiMocks.search.mockReset();
   apiMocks.playableUrl.mockReset();
   apiMocks.lyric.mockReset();
-  directMocks.searchDirectMusic.mockReset();
   directMocks.resolveDirectPlayableUrl.mockReset();
   mediaMocks.play.mockReset();
   mediaMocks.pause.mockReset();
@@ -186,67 +179,58 @@ describe("App", () => {
     expect(screen.getAllByText((content) => content.includes("咪咕音乐")).length).toBeGreaterThan(0);
   });
 
-  it("merges direct browser search results with all server fallback sources", async () => {
-    directMocks.searchDirectMusic.mockResolvedValue({
-      results: [
-        { source: "migu", total: 1, songs: [songs[0]] },
-        { source: "netease", total: 1, songs: [songs[1]] },
-        { source: "qq", total: 0, songs: [] },
-      ],
-      failedSources: [],
-    });
+  it("searches through the API with all configured sources", async () => {
     apiMocks.search.mockResolvedValueOnce([
-      { source: "netease", total: 1, songs: [{ ...songs[1], coverUrl: "net.jpg" }] },
+      { source: "migu", total: 1, songs: [songs[0]] },
+      {
+        source: "itunes",
+        total: 1,
+        songs: [{ ...qqSong, source: "itunes", id: "it1", quality: { ...quality, sourceLabel: "iTunes" } }],
+      },
     ]);
 
     renderApp();
 
     expect((await screen.findAllByRole("button", { name: /播放 晴天/ })).length).toBeGreaterThan(0);
-    expect(directMocks.searchDirectMusic).toHaveBeenCalledWith({
+    expect(apiMocks.search).toHaveBeenCalledWith({
       keyword: "周杰伦",
       sources: ["migu", "netease", "qq", "itunes", "deezer"],
     });
-    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["migu", "netease", "qq"] });
   });
 
-  it("keeps all direct browser sources while also asking the server fallback", async () => {
-    directMocks.searchDirectMusic.mockResolvedValue({
-      results: [
-        { source: "migu", total: 1, songs: [{ ...songs[0], coverUrl: "migu.jpg" }] },
-        { source: "qq", total: 1, songs: [{ ...qqSong, coverUrl: "qq.jpg" }] },
-        { source: "netease", total: 1, songs: [{ ...songs[1], coverUrl: "net.jpg" }] },
-      ],
-      failedSources: [],
-    });
+  it("keeps all API source groups in the result list", async () => {
+    apiMocks.search.mockResolvedValueOnce([
+      { source: "migu", total: 1, songs: [{ ...songs[0], coverUrl: "migu.jpg" }] },
+      { source: "qq", total: 1, songs: [{ ...qqSong, coverUrl: "qq.jpg" }] },
+      { source: "netease", total: 1, songs: [{ ...songs[1], coverUrl: "net.jpg" }] },
+    ]);
 
     renderApp();
 
     expect(await screen.findByRole("button", { name: /播放 稻香/ })).not.toBeNull();
-    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["migu", "netease", "qq"] });
+    expect(apiMocks.search).toHaveBeenCalledWith({
+      keyword: "周杰伦",
+      sources: ["migu", "netease", "qq", "itunes", "deezer"],
+    });
   });
 
   it("puts likely playable netease songs before non-playable qq songs", async () => {
-    directMocks.searchDirectMusic.mockResolvedValue({
-      results: [
-        { source: "qq", total: 1, songs: [qqSong] },
-        { source: "netease", total: 1, songs: [{ ...songs[1], coverUrl: "net.jpg" }] },
-      ],
-      failedSources: [],
-    });
-    apiMocks.search.mockResolvedValueOnce([]);
+    apiMocks.search.mockResolvedValueOnce([
+      { source: "qq", total: 1, songs: [qqSong] },
+      { source: "netease", total: 1, songs: [{ ...songs[1], coverUrl: "net.jpg" }] },
+    ]);
 
     renderApp();
 
     const buttons = await screen.findAllByRole("button", { name: /播放 / });
     expect(buttons[0].textContent).toContain("夜曲");
-    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["migu", "netease", "qq"] });
+    expect(apiMocks.search).toHaveBeenCalledWith({
+      keyword: "周杰伦",
+      sources: ["migu", "netease", "qq", "itunes", "deezer"],
+    });
   });
 
-  it("replaces direct netease results with server-enriched covers", async () => {
-    directMocks.searchDirectMusic.mockResolvedValue({
-      results: [{ source: "netease", total: 1, songs: [songs[1]] }],
-      failedSources: ["migu", "qq"],
-    });
+  it("renders API-enriched netease covers", async () => {
     apiMocks.search.mockResolvedValueOnce([
       { source: "netease", total: 1, songs: [{ ...songs[1], coverUrl: "https://p1.music.126.net/net.jpg" }] },
     ]);
@@ -260,34 +244,10 @@ describe("App", () => {
           .some((image) => image.getAttribute("src") === "https://p1.music.126.net/net.jpg"),
       ).toBe(true);
     });
-    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["migu", "netease", "qq"] });
-  });
-
-  it("fills failed direct browser sources from the server fallback", async () => {
-    directMocks.searchDirectMusic.mockResolvedValueOnce({
-      results: [{ source: "migu", total: 1, songs: [songs[0]] }],
-      failedSources: ["netease", "qq"],
+    expect(apiMocks.search).toHaveBeenCalledWith({
+      keyword: "周杰伦",
+      sources: ["migu", "netease", "qq", "itunes", "deezer"],
     });
-    apiMocks.search.mockResolvedValueOnce([{ source: "netease", total: 1, songs: [songs[1]] }]);
-
-    renderApp();
-
-    expect(await screen.findByRole("button", { name: /播放 晴天/ })).not.toBeNull();
-    expect(await screen.findByRole("button", { name: /播放 夜曲/ })).not.toBeNull();
-    expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["migu", "netease", "qq"] });
-  });
-
-  it("keeps direct browser results when server fallback fails", async () => {
-    directMocks.searchDirectMusic.mockResolvedValue({
-      results: [{ source: "migu", total: 1, songs: [songs[0]] }],
-      failedSources: ["netease", "qq"],
-    });
-    apiMocks.search.mockRejectedValueOnce(new Error("server down"));
-
-    renderApp();
-
-    expect(await screen.findByRole("button", { name: /播放 晴天/ })).not.toBeNull();
-    expect(screen.queryByRole("button", { name: /播放 夜曲/ })).toBeNull();
   });
 
   it("submits new keyword from an accessible search field and shows loading and empty states", async () => {
@@ -313,13 +273,16 @@ describe("App", () => {
     resolveSecondSearch([]);
 
     await waitFor(() => {
-      expect(apiMocks.search).toHaveBeenLastCalledWith({ keyword: "不存在", sources: ["migu", "netease", "qq"] });
+      expect(apiMocks.search).toHaveBeenLastCalledWith({
+        keyword: "不存在",
+        sources: ["migu", "netease", "qq", "itunes", "deezer"],
+      });
     });
     expect(await screen.findByText("没找到结果")).not.toBeNull();
   });
 
-  it("shows a search error when the browser-first search pipeline fails", async () => {
-    directMocks.searchDirectMusic.mockRejectedValueOnce(new Error("search down"));
+  it("shows a search error when the API search fails", async () => {
+    apiMocks.search.mockRejectedValueOnce(new Error("search down"));
 
     renderApp();
 
@@ -413,6 +376,16 @@ describe("App", () => {
     expect(usePlayerStore.getState().queue.map((song) => song.id)).toEqual(["1"]);
   });
 
+  it("returns to the discover search view from library navigation", async () => {
+    await selectFirstSong();
+
+    await userEvent.click(screen.getByRole("button", { name: /播放列表/ }));
+    expect(screen.getByRole("heading", { name: "播放列表" })).not.toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "推荐" }));
+    expect(screen.getByRole("heading", { name: "搜索结果" })).not.toBeNull();
+  });
+
   it("moves to next and previous songs from the bottom player", async () => {
     await selectFirstSong();
 
@@ -422,6 +395,14 @@ describe("App", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "底部切上一曲" }));
     expect(usePlayerStore.getState().current?.id).toBe("1");
+  });
+
+  it("advances to the next queued song when audio ends", async () => {
+    await selectFirstSong();
+
+    fireEvent.ended(screen.getByTestId("audio-player"));
+
+    await waitFor(() => expect(usePlayerStore.getState().current?.id).toBe("2"));
   });
 
   it("shows recoverable playback errors", async () => {

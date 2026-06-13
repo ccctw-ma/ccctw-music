@@ -52,12 +52,15 @@ async function mockAudio(page: Page) {
 
 async function mockApi(page: Page) {
   let playableUrlRequested = false;
+  let directSearchRequested = false;
 
-  await page.route(/https:\/\/m\.music\.migu\.cn\/migu\/remoting\/scr_search_tag.*/, (route) => route.abort());
-  await page.route(/https:\/\/music\.163\.com\/api\/search\/get.*/, (route) => route.abort());
-  await page.route(/https:\/\/c\.y\.qq\.com\/soso\/fcgi-bin\/client_search_cp.*/, (route) => route.abort());
-  await page.route(/https:\/\/itunes\.apple\.com\/search.*/, (route) => route.abort());
-  await page.route(/https:\/\/api\.deezer\.com\/search.*/, (route) => route.abort());
+  await page.route(
+    /https:\/\/(?:m\.music\.migu\.cn|music\.163\.com|c\.y\.qq\.com|itunes\.apple\.com|api\.deezer\.com).*/,
+    (route) => {
+      directSearchRequested = true;
+      return route.abort();
+    },
+  );
 
   await page.route(/.*\/(?:api\/)?v1\/search.*/, async (route) => {
     const url = new URL(route.request().url());
@@ -121,6 +124,7 @@ async function mockApi(page: Page) {
 
   return {
     playableUrlRequested: () => playableUrlRequested,
+    directSearchRequested: () => directSearchRequested,
   };
 }
 
@@ -150,6 +154,7 @@ test("searches, plays music, screenshots each compact page state", async ({ page
 
   const songButton = page.getByRole("button", { name: /播放 晴天/ }).first();
   await expect(songButton).toBeVisible();
+  await expect.poll(apiState.directSearchRequested).toBe(false);
   await expect(page.getByText("正版").first()).toBeVisible();
   await expect(page.getByText("免费可播").first()).toBeVisible();
   await page.screenshot({ path: "test-results/page-search-results.png", fullPage: true });

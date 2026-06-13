@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createCipheriv } from "node:crypto";
+import { deezerProvider } from "./deezer";
+import { itunesProvider } from "./itunes";
 import { miguProvider } from "./migu";
 import { neteaseProvider } from "./netease";
 import { qqProvider } from "./qq";
@@ -388,6 +390,62 @@ describe("music providers", () => {
     });
   });
 
+  it("searches itunes and resolves preview playable url", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse({
+            resultCount: 1,
+            results: [{ trackId: 11, trackName: "iTunes", artistName: "A", previewUrl: "preview.m4a" }],
+          }),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            results: [{ trackId: 11, trackName: "iTunes", artistName: "A", previewUrl: "preview.m4a" }],
+          }),
+        ),
+    };
+
+    await expect(itunesProvider.search({ keyword: "it" }, context)).resolves.toMatchObject({
+      source: "itunes",
+      total: 1,
+      songs: [{ id: "11", name: "iTunes", playableUrl: "preview.m4a" }],
+    });
+    await expect(itunesProvider.playableUrl("11", context)).resolves.toEqual({
+      source: "itunes",
+      url: "preview.m4a",
+      quality: "preview",
+    });
+  });
+
+  it("searches deezer and resolves preview playable url", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse({
+            total: 1,
+            data: [{ id: 22, title: "Deezer", artist: { name: "D" }, preview: "preview.mp3" }],
+          }),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({ id: 22, title: "Deezer", artist: { name: "D" }, preview: "preview.mp3" }),
+        ),
+    };
+
+    await expect(deezerProvider.search({ keyword: "dz" }, context)).resolves.toMatchObject({
+      source: "deezer",
+      total: 1,
+      songs: [{ id: "22", name: "Deezer", playableUrl: "preview.mp3" }],
+    });
+    await expect(deezerProvider.playableUrl("22", context)).resolves.toEqual({
+      source: "deezer",
+      url: "preview.mp3",
+      quality: "preview",
+    });
+  });
+
   it("searches across providers and uses cache", async () => {
     const context: ProviderContext = {
       fetch: vi.fn().mockResolvedValue(jsonResponse({ musics: [{ id: "1", songName: "Cached" }] })),
@@ -413,6 +471,16 @@ describe("music providers", () => {
 
     expect(results).toHaveLength(1);
     expect(context.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses every default provider when sources are omitted", async () => {
+    const context: ProviderContext = {
+      fetch: vi.fn().mockResolvedValue(jsonResponse({})),
+    };
+
+    const results = await searchAcrossProviders({ keyword: "x" }, context);
+
+    expect(results.map((result) => result.source).sort()).toEqual(["deezer", "itunes", "migu", "netease", "qq"]);
   });
 
   it("orders provider groups by the best normalized quality score", async () => {

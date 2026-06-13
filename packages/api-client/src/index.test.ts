@@ -16,7 +16,7 @@ describe("createMusicApiClient", () => {
     expect(url.pathname).toBe("/v1/search");
     expect(url.searchParams.get("keyword")).toBe("hello");
     expect(url.searchParams.get("page")).toBe("1");
-    expect(url.searchParams.get("sources")).toBe("migu,netease,qq");
+    expect(url.searchParams.get("sources")).toBe("migu,netease,qq,itunes,deezer");
   });
 
   it("throws when search response is not ok", async () => {

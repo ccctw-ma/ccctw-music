@@ -1,4 +1,6 @@
 import type { MusicSource, SearchInput, SearchResult } from "@ccctw-music/core";
+import { deezerProvider } from "./deezer";
+import { itunesProvider } from "./itunes";
 import { miguProvider } from "./migu";
 import { neteaseProvider } from "./netease";
 import { qqProvider } from "./qq";
@@ -10,9 +12,11 @@ export const providers = {
   migu: miguProvider,
   netease: neteaseProvider,
   qq: qqProvider,
+  itunes: itunesProvider,
+  deezer: deezerProvider,
 } satisfies Partial<Record<MusicSource, MusicProvider>>;
 
-const DEFAULT_SOURCES: MusicSource[] = ["migu", "netease", "qq"];
+const DEFAULT_SOURCES: MusicSource[] = ["migu", "netease", "qq", "itunes", "deezer"];
 
 export function getProvider(source: MusicSource): MusicProvider | undefined {
   return providers[source as keyof typeof providers];
