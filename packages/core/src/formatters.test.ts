@@ -160,6 +160,7 @@ describe("song formatters", () => {
       playbackMode: "external",
       externalUrl: "https://www.bilibili.com/video/BV1xx411c7mD",
       coverUrl: "https://i0.hdslb.com/cover.jpg",
+      quality: { sourceLabel: "Bilibili" },
     });
   });
 

@@ -87,7 +87,9 @@ function qualityFor(
             ? "iTunes"
             : source === "deezer"
               ? "Deezer"
-              : source;
+              : source === "bilibili"
+                ? "Bilibili"
+                : source;
   const official =
     source === "migu" || source === "netease" || source === "qq" || source === "itunes" || source === "deezer";
   const quality = input.lossless ? "lossless" : input.high ? "high" : input.playable ? "standard" : "unknown";

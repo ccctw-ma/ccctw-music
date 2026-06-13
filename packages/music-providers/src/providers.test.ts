@@ -16,6 +16,13 @@ function jsonResponse(body: unknown) {
   } as Response;
 }
 
+function textResponse(body: string) {
+  return {
+    ok: true,
+    text: async () => body,
+  } as Response;
+}
+
 function encryptedNeteaseResponse(body: unknown) {
   const cipher = createCipheriv("aes-128-ecb", "e82ckenh8dichen8", null);
   const buffer = Buffer.concat([cipher.update(Buffer.from(JSON.stringify(body))), cipher.final()]);
@@ -441,6 +448,68 @@ describe("music providers", () => {
       source: "bilibili",
       url: "https://www.bilibili.com/video/BV1xx411c7mD",
       quality: "external",
+    });
+  });
+
+  it("falls back to bilibili search page cards when the json search is empty", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ data: { numResults: 0, result: [] } }))
+        .mockResolvedValueOnce(
+          textResponse(`
+            <div class="col_3"><div class="bili-video-card">
+              <a href="//www.bilibili.com/video/BV1htmlCard01/">
+                <img src="//i0.hdslb.com/cover.jpg" alt="fallback cover">
+              </a>
+              <a href="//www.bilibili.com/video/BV1htmlCard01/">
+                <h3 class="bili-video-card__info--tit" title="HTML &amp; fallback">HTML fallback</h3>
+              </a>
+              <span class="bili-video-card__info--author">Fallback UP</span>
+            </div></div>
+          `),
+        ),
+    };
+
+    await expect(bilibiliProvider.search({ keyword: "live", pageSize: 5 }, context)).resolves.toMatchObject({
+      source: "bilibili",
+      songs: [
+        {
+          id: "BV1htmlCard01",
+          name: "HTML & fallback",
+          artists: [{ name: "Fallback UP" }],
+          coverUrl: "https://i0.hdslb.com/cover.jpg",
+          externalUrl: "https://www.bilibili.com/video/BV1htmlCard01",
+        },
+      ],
+    });
+    expect(context.fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining("https://search.bilibili.com/video?keyword=live"),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Accept: expect.stringContaining("text/html"),
+        }),
+      }),
+    );
+  });
+
+  it("returns a bilibili search entry when upstream video extraction is blocked", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ data: { result: [] } }))
+        .mockRejectedValueOnce(new Error("412")),
+    };
+
+    await expect(bilibiliProvider.search({ keyword: "blocked" }, context)).resolves.toMatchObject({
+      source: "bilibili",
+      songs: [
+        {
+          id: "search-blocked",
+          name: "在 Bilibili 查看「blocked」相关视频",
+          externalUrl: "https://search.bilibili.com/video?keyword=blocked",
+        },
+      ],
     });
   });
 
