@@ -138,6 +138,24 @@ describe("usePlayerStore", () => {
     expect(usePlayerStore.getState().current).toEqual(song);
   });
 
+  it("adds, deduplicates, removes, and persists owned audio entries", () => {
+    const owned: Song = {
+      ...song,
+      id: "owned-1",
+      source: "other",
+      name: "Owned",
+      playableUrl: "https://cdn.example.com/owned.mp3",
+      quality: { ...quality, sourceLabel: "自有音频", badges: ["自有音频", "完整音频"] },
+    };
+
+    usePlayerStore.getState().addOwnedAudio(owned);
+    usePlayerStore.getState().addOwnedAudio(owned);
+    expect(usePlayerStore.getState().ownedAudios).toEqual([owned]);
+
+    usePlayerStore.getState().removeOwnedAudio(songKey(owned));
+    expect(usePlayerStore.getState().ownedAudios).toEqual([]);
+  });
+
   it("updates progress and clamps volume", () => {
     usePlayerStore.getState().setProgress(45, 120);
     usePlayerStore.getState().setVolume(1.4);
@@ -152,6 +170,7 @@ describe("usePlayerStore", () => {
     usePlayerStore.getState().loadQueue([song, nextSong], song);
     usePlayerStore.getState().toggleFavorite(song);
     usePlayerStore.getState().addToPlaylist("studio-mix", nextSong);
+    usePlayerStore.getState().addOwnedAudio(thirdSong);
     usePlayerStore.getState().setVolume(0.42);
     usePlayerStore.getState().play();
 
@@ -163,6 +182,7 @@ describe("usePlayerStore", () => {
       recentlyPlayed: [song],
       favorites: [song],
       playlists: [{ id: "studio-mix", name: "Studio Mix", songs: [nextSong] }],
+      ownedAudios: [thirdSong],
       volume: 0.42,
       mode: "sequence",
     });

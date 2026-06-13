@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatBilibiliSong,
   formatDeezerSong,
   formatItunesSong,
   formatMiguSong,
@@ -141,6 +142,43 @@ describe("song formatters", () => {
     });
   });
 
+  it("normalizes bilibili videos as external playback entries", () => {
+    expect(
+      formatBilibiliSong({
+        bvid: "BV1xx411c7mD",
+        title: '<em class="keyword">Live</em> 视频',
+        author: "Uploader",
+        pic: "//i0.hdslb.com/cover.jpg",
+        duration: 320,
+      }),
+    ).toMatchObject({
+      id: "BV1xx411c7mD",
+      source: "bilibili",
+      name: "Live 视频",
+      artists: [{ name: "Uploader" }],
+      duration: 320,
+      playbackMode: "external",
+      externalUrl: "https://www.bilibili.com/video/BV1xx411c7mD",
+      coverUrl: "https://i0.hdslb.com/cover.jpg",
+    });
+  });
+
+  it("uses bilibili fallback ids and urls when bvid is missing", () => {
+    expect(
+      formatBilibiliSong({
+        aid: 123,
+        name: "Fallback Video",
+        owner: { name: "Owner" },
+        arcurl: "http://www.bilibili.com/video/av123",
+      }),
+    ).toMatchObject({
+      id: "123",
+      name: "Fallback Video",
+      artists: [{ name: "Owner" }],
+      externalUrl: "https://www.bilibili.com/video/av123",
+    });
+  });
+
   it("filters empty normalized songs and ignores unsupported sources", () => {
     expect(formatSongs([null, { id: "", name: "" }, { id: 1, name: "ok" }], "netease")).toHaveLength(1);
     expect(formatSongs([{ id: 1 }], "other")).toEqual([]);
@@ -155,6 +193,19 @@ describe("song formatters", () => {
       duration: 20,
       playableUrl: null,
       coverUrl: null,
+    });
+
+    expect(
+      formatMiguSong({
+        copyrightId: "c2",
+        name: "Format Url",
+        singer: "A",
+        rateFormats: [{ formatType: "HQ", androidUrl: "http://cdn.example.com/hq.mp3" }],
+      }),
+    ).toMatchObject({
+      id: "c2",
+      playableUrl: "https://cdn.example.com/hq.mp3",
+      quality: { playable: true, quality: "high" },
     });
 
     expect(

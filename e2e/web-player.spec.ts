@@ -55,7 +55,7 @@ async function mockApi(page: Page) {
   let directSearchRequested = false;
 
   await page.route(
-    /https:\/\/(?:m\.music\.migu\.cn|music\.163\.com|c\.y\.qq\.com|itunes\.apple\.com|api\.deezer\.com).*/,
+    /https:\/\/(?:m\.music\.migu\.cn|music\.163\.com|c\.y\.qq\.com|itunes\.apple\.com|api\.deezer\.com|api\.bilibili\.com).*/,
     (route) => {
       directSearchRequested = true;
       return route.abort();

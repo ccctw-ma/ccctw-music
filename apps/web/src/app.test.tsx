@@ -194,7 +194,7 @@ describe("App", () => {
     expect((await screen.findAllByRole("button", { name: /播放 晴天/ })).length).toBeGreaterThan(0);
     expect(apiMocks.search).toHaveBeenCalledWith({
       keyword: "周杰伦",
-      sources: ["migu", "netease", "qq", "itunes", "deezer"],
+      sources: ["migu", "netease", "qq", "itunes", "deezer", "bilibili"],
     });
   });
 
@@ -210,7 +210,7 @@ describe("App", () => {
     expect(await screen.findByRole("button", { name: /播放 稻香/ })).not.toBeNull();
     expect(apiMocks.search).toHaveBeenCalledWith({
       keyword: "周杰伦",
-      sources: ["migu", "netease", "qq", "itunes", "deezer"],
+      sources: ["migu", "netease", "qq", "itunes", "deezer", "bilibili"],
     });
   });
 
@@ -226,7 +226,7 @@ describe("App", () => {
     expect(buttons[0].textContent).toContain("夜曲");
     expect(apiMocks.search).toHaveBeenCalledWith({
       keyword: "周杰伦",
-      sources: ["migu", "netease", "qq", "itunes", "deezer"],
+      sources: ["migu", "netease", "qq", "itunes", "deezer", "bilibili"],
     });
   });
 
@@ -246,7 +246,7 @@ describe("App", () => {
     });
     expect(apiMocks.search).toHaveBeenCalledWith({
       keyword: "周杰伦",
-      sources: ["migu", "netease", "qq", "itunes", "deezer"],
+      sources: ["migu", "netease", "qq", "itunes", "deezer", "bilibili"],
     });
   });
 
@@ -275,7 +275,7 @@ describe("App", () => {
     await waitFor(() => {
       expect(apiMocks.search).toHaveBeenLastCalledWith({
         keyword: "不存在",
-        sources: ["migu", "netease", "qq", "itunes", "deezer"],
+        sources: ["migu", "netease", "qq", "itunes", "deezer", "bilibili"],
       });
     });
     expect(await screen.findByText("没找到结果")).not.toBeNull();
@@ -360,6 +360,64 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("button", { name: "播放列表" }));
     expect(screen.getByRole("heading", { name: "播放列表" })).not.toBeNull();
     expect(screen.getByText("暂无播放列表")).not.toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "自有音频" }));
+    expect(screen.getByRole("heading", { name: "自有音频" })).not.toBeNull();
+    expect(screen.getByText("暂无自有音频")).not.toBeNull();
+  });
+
+  it("adds and plays an owned audio url from the local library", async () => {
+    renderApp();
+
+    await userEvent.click(screen.getByRole("button", { name: "自有音频" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "自有音频名称" }), "自有歌");
+    await userEvent.type(screen.getByRole("textbox", { name: "自有音频歌手" }), "我");
+    await userEvent.type(screen.getByRole("textbox", { name: "自有音频 URL" }), "https://cdn.example.com/owned.mp3");
+    await userEvent.click(screen.getByRole("button", { name: "加入" }));
+
+    expect(usePlayerStore.getState().ownedAudios[0]).toMatchObject({
+      name: "自有歌",
+      playableUrl: "https://cdn.example.com/owned.mp3",
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /播放 自有歌/ }));
+    expect(screen.getByTestId("audio-player")).toHaveProperty("src", "https://cdn.example.com/owned.mp3");
+  });
+
+  it("validates owned audio input before adding it", async () => {
+    renderApp();
+
+    await userEvent.click(screen.getByRole("button", { name: "自有音频" }));
+    await userEvent.click(screen.getByRole("button", { name: "加入" }));
+    expect(screen.getByText("请填写自有音频名称和合法音频 URL。")).not.toBeNull();
+
+    await userEvent.type(screen.getByRole("textbox", { name: "自有音频名称" }), "非法 URL");
+    await userEvent.type(screen.getByRole("textbox", { name: "自有音频 URL" }), "ftp://cdn.example.com/audio.mp3");
+    await userEvent.click(screen.getByRole("button", { name: "加入" }));
+
+    expect(screen.getByText("自有音频 URL 格式不正确。")).not.toBeNull();
+    expect(usePlayerStore.getState().ownedAudios).toEqual([]);
+  });
+
+  it("opens bilibili videos externally instead of extracting audio", async () => {
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
+    const bilibiliSong = {
+      ...songs[0],
+      id: "BV1xx411c7mD",
+      source: "bilibili" as const,
+      name: "现场视频",
+      playbackMode: "external" as const,
+      externalUrl: "https://www.bilibili.com/video/BV1xx411c7mD",
+      quality: { ...quality, sourceLabel: "Bilibili", playable: false, free: false },
+    };
+    apiMocks.search.mockResolvedValueOnce([{ source: "bilibili", total: 1, songs: [bilibiliSong] }]);
+
+    renderApp();
+    await userEvent.click(await screen.findByRole("button", { name: /播放 现场视频/ }));
+
+    expect(open).toHaveBeenCalledWith("https://www.bilibili.com/video/BV1xx411c7mD", "_blank", "noopener,noreferrer");
+    expect(apiMocks.playableUrl).not.toHaveBeenCalledWith("bilibili", "BV1xx411c7mD");
+    open.mockRestore();
   });
 
   it("shows and edits the current playlist from the rail", async () => {

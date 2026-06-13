@@ -30,6 +30,15 @@ function normalizeCoverUrl(url?: unknown): string | undefined {
   return trimmed;
 }
 
+function firstString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return undefined;
+}
+
 function miguCoverUrl(raw: UnknownRecord): string | undefined {
   const albumImages = raw.albumImgs;
   if (Array.isArray(albumImages)) {
@@ -117,11 +126,30 @@ function qualityFor(
 
 export function formatMiguSong(raw: UnknownRecord): Song {
   const coverUrl = miguCoverUrl(raw);
-  const playableUrl = raw.mp3 ?? raw.url ?? null;
   const formats = [
     ...(Array.isArray(raw.newRateFormats) ? raw.newRateFormats : []),
     ...(Array.isArray(raw.rateFormats) ? raw.rateFormats : []),
   ];
+  const playableUrl =
+    normalizeCoverUrl(
+      firstString(
+        raw.mp3,
+        raw.url,
+        raw.playUrl,
+        raw.listenUrl,
+        raw.downloadUrl,
+        raw.m4a,
+        ...formats.flatMap((format) => [
+          format?.url,
+          format?.androidUrl,
+          format?.iosUrl,
+          format?.fileUrl,
+          format?.downloadUrl,
+          format?.androidFileUrl,
+          format?.iosFileUrl,
+        ]),
+      ),
+    ) ?? null;
   const formatTypes = formats.map((item) => String(item?.formatType ?? "").toUpperCase());
   return {
     id: String(raw.id ?? raw.copyrightId ?? raw.songId ?? ""),
@@ -144,6 +172,36 @@ export function formatMiguSong(raw: UnknownRecord): Song {
       lossless: formatTypes.some((value) => value.includes("SQ") || value.includes("ZQ")),
       high: formatTypes.some((value) => value.includes("HQ") || value.includes("PQ")),
     }),
+    raw,
+  };
+}
+
+export function formatBilibiliSong(raw: UnknownRecord): Song {
+  const bvid = firstString(raw.bvid, raw.id, raw.aid === undefined ? undefined : String(raw.aid));
+  const coverUrl = normalizeCoverUrl(raw.pic ?? raw.cover);
+  const author = firstString(raw.author, raw.owner?.name, raw.name);
+  const videoUrl = raw.bvid ? `https://www.bilibili.com/video/${bvid}` : normalizeCoverUrl(raw.arcurl ?? raw.url);
+
+  return {
+    id: String(bvid ?? ""),
+    source: "bilibili",
+    name: String(raw.title ?? raw.name ?? "").replace(/<[^>]+>/g, ""),
+    artists: author ? [{ name: author }] : [],
+    album: {
+      name: "Bilibili 视频",
+      coverUrl,
+      source: "bilibili",
+      raw,
+    },
+    duration: typeof raw.duration === "number" ? raw.duration : undefined,
+    playableUrl: null,
+    coverUrl: coverUrl ?? null,
+    quality: qualityFor("bilibili", {
+      playable: false,
+      high: true,
+    }),
+    playbackMode: "external",
+    externalUrl: videoUrl,
     raw,
   };
 }
@@ -311,6 +369,14 @@ export function formatSongs(rawSongs: unknown[], source: MusicSource): Song[] {
     return rawSongs
       .filter(isRecord)
       .map((song) => formatDeezerSong(song))
+      .filter((song) => song.id && song.name)
+      .sort((left, right) => right.quality.score - left.quality.score);
+  }
+
+  if (source === "bilibili") {
+    return rawSongs
+      .filter(isRecord)
+      .map((song) => formatBilibiliSong(song))
       .filter((song) => song.id && song.name)
       .sort((left, right) => right.quality.score - left.quality.score);
   }

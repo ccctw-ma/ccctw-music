@@ -29,7 +29,7 @@ const apiClient = createMusicApiClient({
   baseUrl: import.meta.env.PUBLIC_API_BASE_URL ?? "/api",
 });
 
-const SOURCES = ["migu", "netease", "qq", "itunes", "deezer"] as const;
+const SOURCES = ["migu", "netease", "qq", "itunes", "deezer", "bilibili"] as const;
 
 function bestScore(result: SearchResult) {
   return result.songs[0]?.quality?.score ?? 0;
@@ -77,6 +77,7 @@ function sourceName(source?: string) {
     qq: "QQ",
     itunes: "iTunes",
     deezer: "Deezer",
+    bilibili: "Bilibili",
   };
   return source ? (names[source] ?? source) : "Source";
 }
@@ -243,13 +244,14 @@ export function App() {
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [loadingSongId, setLoadingSongId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [view, setView] = useState<"discover" | "favorites" | "queue">("discover");
+  const [view, setView] = useState<"discover" | "favorites" | "queue" | "owned">("discover");
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const {
     current,
     queue,
     favorites,
+    ownedAudios,
     isPlaying,
     duration,
     currentTime,
@@ -261,6 +263,8 @@ export function App() {
     toggleFavorite,
     isFavorite,
     removeFromQueue,
+    addOwnedAudio,
+    removeOwnedAudio,
     setProgress,
   } = usePlayerStore();
 
@@ -291,6 +295,47 @@ export function App() {
     setSubmittedKeyword(keyword.trim());
   }
 
+  function handleOwnedAudioSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const name = String(data.get("name") ?? "").trim();
+    const artist = String(data.get("artist") ?? "").trim();
+    const url = String(data.get("url") ?? "").trim();
+    if (!name || !url) {
+      setPlaybackError("请填写自有音频名称和合法音频 URL。");
+      return;
+    }
+    try {
+      const parsed = new URL(url);
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        throw new Error("invalid protocol");
+      }
+    } catch {
+      setPlaybackError("自有音频 URL 格式不正确。");
+      return;
+    }
+
+    addOwnedAudio({
+      id: `owned-${Date.now()}`,
+      source: "other",
+      name,
+      artists: artist ? [{ name: artist }] : [{ name: "自有音频" }],
+      album: { name: "自有音频库", source: "other" },
+      playableUrl: url,
+      coverUrl: null,
+      quality: {
+        sourceLabel: "自有音频",
+        official: false,
+        free: true,
+        playable: true,
+        quality: "high",
+        score: 90,
+        badges: ["自有音频", "完整音频"],
+      },
+    });
+    event.currentTarget.reset();
+  }
+
   async function loadAndPlay(url: string) {
     if (!audioRef.current) {
       return;
@@ -301,6 +346,16 @@ export function App() {
   }
 
   async function startSong(song: Song, nextQueue = songs.length ? songs : [song]) {
+    if (song.playbackMode === "external" || song.source === "bilibili") {
+      const externalUrl = song.externalUrl ?? song.playableUrl;
+      if (externalUrl) {
+        window.open(externalUrl, "_blank", "noopener,noreferrer");
+        loadQueue(nextQueue, song);
+        pause();
+        return;
+      }
+    }
+
     const fallbackQueue = [song, ...nextQueue.filter((candidate) => songKey(candidate) !== songKey(song))];
     setPlaybackError(null);
     setLoadingSongId(songKey(song));
@@ -458,12 +513,14 @@ export function App() {
     );
   }
 
-  function renderLibrary(mode: "favorites" | "queue") {
-    const list = mode === "favorites" ? favorites : queue;
+  function renderLibrary(mode: "favorites" | "queue" | "owned") {
+    const list = mode === "favorites" ? favorites : mode === "owned" ? ownedAudios : queue;
     const meta =
       mode === "favorites"
         ? { kicker: "Favorites", title: "我的喜欢", empty: "还没有收藏。播放时点击爱心，把喜欢的歌存到这里。" }
-        : { kicker: "Playlist", title: "播放列表", empty: "播放列表是空的。从搜索结果选一首歌就会自动加入。" };
+        : mode === "owned"
+          ? { kicker: "Owned", title: "自有音频", empty: "录入你有权使用的完整音频 URL，作为最稳定的播放源。" }
+          : { kicker: "Playlist", title: "播放列表", empty: "播放列表是空的。从搜索结果选一首歌就会自动加入。" };
 
     return (
       <Card className="result-panel" shadcnName={`library-${mode}`} aria-label={meta.title}>
@@ -475,10 +532,37 @@ export function App() {
           <span>{list.length} 首</span>
         </div>
 
+        {mode === "owned" ? (
+          <form className="owned-audio-form" aria-label="录入自有音频" onSubmit={handleOwnedAudioSubmit}>
+            <Input shadcnName="owned-audio-name" name="name" placeholder="歌曲名称" aria-label="自有音频名称" />
+            <Input
+              shadcnName="owned-audio-artist"
+              name="artist"
+              placeholder="歌手/来源（可选）"
+              aria-label="自有音频歌手"
+            />
+            <Input
+              shadcnName="owned-audio-url"
+              name="url"
+              placeholder="https://.../audio.mp3"
+              aria-label="自有音频 URL"
+            />
+            <Button variant="primary" shadcnName="owned-audio-submit" type="submit">
+              加入
+            </Button>
+          </form>
+        ) : null}
+
         {list.length === 0 ? (
           <div className="empty-state">
-            {mode === "favorites" ? <Heart size={26} /> : <ListMusic size={26} />}
-            <strong>{mode === "favorites" ? "暂无收藏" : "暂无播放列表"}</strong>
+            {mode === "favorites" ? (
+              <Heart size={26} />
+            ) : mode === "owned" ? (
+              <Mic2 size={26} />
+            ) : (
+              <ListMusic size={26} />
+            )}
+            <strong>{mode === "favorites" ? "暂无收藏" : mode === "owned" ? "暂无自有音频" : "暂无播放列表"}</strong>
             <p>{meta.empty}</p>
           </div>
         ) : (
@@ -527,11 +611,15 @@ export function App() {
                         variant="icon"
                         shadcnName={`remove-${key}`}
                         type="button"
-                        aria-label={`从播放列表移除 ${song.name}`}
-                        disabled={selected}
+                        aria-label={`${mode === "owned" ? "从自有音频移除" : "从播放列表移除"} ${song.name}`}
+                        disabled={mode === "queue" && selected}
                         onClick={(event) => {
                           event.stopPropagation();
-                          removeFromQueue(key);
+                          if (mode === "owned") {
+                            removeOwnedAudio(key);
+                          } else {
+                            removeFromQueue(key);
+                          }
                         }}
                       >
                         <Trash2 size={15} />
@@ -613,6 +701,16 @@ export function App() {
             <ListMusic size={18} />
             <span>播放列表</span>
             {queue.length > 0 ? <small>{queue.length}</small> : null}
+          </button>
+          <button
+            type="button"
+            className={view === "owned" ? "active" : ""}
+            aria-current={view === "owned"}
+            onClick={() => setView("owned")}
+          >
+            <Mic2 size={18} />
+            <span>自有音频</span>
+            {ownedAudios.length > 0 ? <small>{ownedAudios.length}</small> : null}
           </button>
         </nav>
       </aside>

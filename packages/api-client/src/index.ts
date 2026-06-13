@@ -67,7 +67,7 @@ export function createMusicApiClient(options: MusicApiClientOptions): MusicApiCl
         keyword: params.keyword,
         page: String(params.page ?? 1),
         pageSize: String(params.pageSize ?? 30),
-        sources: (params.sources ?? ["migu", "netease", "qq", "itunes", "deezer"]).join(","),
+        sources: (params.sources ?? ["migu", "netease", "qq", "itunes", "deezer", "bilibili"]).join(","),
       });
       const response = await fetcher(`${baseUrl}/v1/search?${query.toString()}`);
       if (!response.ok) {

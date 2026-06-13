@@ -14,6 +14,7 @@ interface PlayerStore {
   recentlyPlayed: Song[];
   favorites: Song[];
   playlists: Playlist[];
+  ownedAudios: Song[];
   isPlaying: boolean;
   duration: number;
   currentTime: number;
@@ -28,6 +29,8 @@ interface PlayerStore {
   toggleFavorite: (song: Song) => void;
   isFavorite: (song: Song) => boolean;
   addToPlaylist: (playlistId: string, song: Song) => void;
+  addOwnedAudio: (song: Song) => void;
+  removeOwnedAudio: (key: string) => void;
   play: () => void;
   pause: () => void;
   setProgress: (currentTime: number, duration?: number) => void;
@@ -85,6 +88,7 @@ export const usePlayerStore = create<PlayerStore>()(
       recentlyPlayed: [],
       favorites: [],
       playlists: [],
+      ownedAudios: [],
       isPlaying: false,
       duration: 0,
       currentTime: 0,
@@ -171,6 +175,14 @@ export const usePlayerStore = create<PlayerStore>()(
             ),
           };
         }),
+      addOwnedAudio: (song) =>
+        set((state) => ({
+          ownedAudios: dedupeSongs([song, ...state.ownedAudios]),
+        })),
+      removeOwnedAudio: (key) =>
+        set((state) => ({
+          ownedAudios: state.ownedAudios.filter((song) => songKey(song) !== key),
+        })),
       play: () => set({ isPlaying: true }),
       pause: () => set({ isPlaying: false }),
       setProgress: (currentTime, duration = get().duration) => set({ currentTime, duration }),
@@ -184,6 +196,7 @@ export const usePlayerStore = create<PlayerStore>()(
         recentlyPlayed: state.recentlyPlayed,
         favorites: state.favorites,
         playlists: state.playlists,
+        ownedAudios: state.ownedAudios,
         duration: state.duration,
         currentTime: state.currentTime,
         volume: state.volume,

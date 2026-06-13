@@ -583,6 +583,29 @@ p {
   font-size: 20px;
 }
 
+.owned-audio-form {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(150px, 0.8fr) minmax(240px, 1.5fr) auto;
+  gap: 10px;
+  padding: 10px 20px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.owned-audio-form input {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.owned-audio-form button {
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 10px;
+}
+
 .song-table-head,
 .song-row {
   display: grid;
@@ -1363,6 +1386,11 @@ p {
 
   .song-main-action {
     grid-template-columns: 42px minmax(0, 1fr) 24px;
+  }
+
+  .owned-audio-form {
+    grid-template-columns: 1fr;
+    padding: 10px 14px 14px;
   }
 
   .song-index {

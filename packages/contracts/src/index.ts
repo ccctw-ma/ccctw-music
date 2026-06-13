@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const musicSourceSchema = z.enum(["netease", "qq", "migu", "itunes", "deezer"]);
+export const musicSourceSchema = z.enum(["netease", "qq", "migu", "itunes", "deezer", "bilibili"]);
 
 export const searchQuerySchema = z.object({
   keyword: z.string().trim().min(1),
@@ -10,7 +10,8 @@ export const searchQuerySchema = z.object({
     .string()
     .optional()
     .transform(
-      (value: string | undefined) => value?.split(",").filter(Boolean) ?? ["migu", "netease", "qq", "itunes", "deezer"],
+      (value: string | undefined) =>
+        value?.split(",").filter(Boolean) ?? ["migu", "netease", "qq", "itunes", "deezer", "bilibili"],
     )
     .pipe(z.array(musicSourceSchema)),
 });

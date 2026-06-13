@@ -28,6 +28,7 @@ interface QqPlayableResponse {
 }
 
 const QQ_GUID = "10000";
+const QQ_FILENAME_PREFIXES = ["M800", "M500", "C400", "C200"];
 
 function qqPlayableUrl(songMid: string, vkey?: string, filename = `C400${songMid}.m4a`) {
   if (!vkey) {
@@ -35,6 +36,26 @@ function qqPlayableUrl(songMid: string, vkey?: string, filename = `C400${songMid
   }
 
   return `https://dl.stream.qqmusic.qq.com/${filename}?vkey=${encodeURIComponent(vkey)}&guid=${QQ_GUID}&uin=0&fromtag=66`;
+}
+
+async function qqPlayableByFilename(id: string, filename: string, context: ProviderContext) {
+  const data = await getJson<QqPlayableResponse>(
+    context.fetch,
+    `https://c.y.qq.com/base/fcgi-bin/fcg_music_express_mobile3.fcg?${toSearchParams({
+      cid: "205361747",
+      format: "json",
+      guid: QQ_GUID,
+      filename,
+      songmid: id,
+    }).toString()}`,
+    {
+      headers: {
+        Referer: "https://y.qq.com",
+      },
+    },
+  );
+  const item = data.data?.items?.[0];
+  return qqPlayableUrl(id, item?.vkey, item?.filename ?? filename);
 }
 
 export const qqProvider: MusicProvider = {
@@ -74,27 +95,21 @@ export const qqProvider: MusicProvider = {
   },
 
   async playableUrl(id: string, context: ProviderContext): Promise<PlayableUrl> {
-    const filename = `C400${id}.m4a`;
-    const data = await getJson<QqPlayableResponse>(
-      context.fetch,
-      `https://c.y.qq.com/base/fcgi-bin/fcg_music_express_mobile3.fcg?${toSearchParams({
-        cid: "205361747",
-        format: "json",
-        guid: QQ_GUID,
-        filename,
-        songmid: id,
-      }).toString()}`,
-      {
-        headers: {
-          Referer: "https://y.qq.com",
-        },
-      },
-    );
-    const item = data.data?.items?.[0];
+    for (const prefix of QQ_FILENAME_PREFIXES) {
+      const extension = prefix.startsWith("M") ? "mp3" : "m4a";
+      const url = await qqPlayableByFilename(id, `${prefix}${id}.${extension}`, context).catch(() => null);
+      if (url) {
+        return {
+          source: "qq",
+          url,
+          quality: prefix.startsWith("M8") ? "high" : "standard",
+        };
+      }
+    }
 
     return {
       source: "qq",
-      url: qqPlayableUrl(id, item?.vkey, item?.filename ?? filename),
+      url: null,
       quality: "standard",
     };
   },

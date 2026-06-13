@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createCipheriv } from "node:crypto";
+import { bilibiliProvider } from "./bilibili";
 import { deezerProvider } from "./deezer";
 import { itunesProvider } from "./itunes";
 import { miguProvider } from "./migu";
@@ -324,7 +325,7 @@ describe("music providers", () => {
             },
           }),
         )
-        .mockResolvedValueOnce(jsonResponse({ data: { items: [{ filename: "C400song-mid.m4a", vkey: "vkey" }] } }))
+        .mockResolvedValueOnce(jsonResponse({ data: { items: [{ filename: "M800song-mid.mp3", vkey: "vkey" }] } }))
         .mockResolvedValueOnce(jsonResponse({ lyric: btoa("[00:02.00]qq") })),
     };
 
@@ -335,8 +336,8 @@ describe("music providers", () => {
     });
     await expect(qqProvider.playableUrl("song-mid", context)).resolves.toEqual({
       source: "qq",
-      url: "https://dl.stream.qqmusic.qq.com/C400song-mid.m4a?vkey=vkey&guid=10000&uin=0&fromtag=66",
-      quality: "standard",
+      url: "https://dl.stream.qqmusic.qq.com/M800song-mid.mp3?vkey=vkey&guid=10000&uin=0&fromtag=66",
+      quality: "high",
     });
     await expect(qqProvider.lyric("song-mid", context)).resolves.toMatchObject({
       type: 2,
@@ -387,6 +388,48 @@ describe("music providers", () => {
       source: "qq",
       url: null,
       quality: "standard",
+    });
+  });
+
+  it("tries lower qq quality filenames when high quality vkey is unavailable", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ data: { items: [{}] } }))
+        .mockResolvedValueOnce(jsonResponse({ data: { items: [{ filename: "M500song-mid.mp3", vkey: "vkey" }] } })),
+    };
+
+    await expect(qqProvider.playableUrl("song-mid", context)).resolves.toEqual({
+      source: "qq",
+      url: "https://dl.stream.qqmusic.qq.com/M500song-mid.mp3?vkey=vkey&guid=10000&uin=0&fromtag=66",
+      quality: "standard",
+    });
+    expect(context.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("searches bilibili as an external video source", async () => {
+    const context: ProviderContext = {
+      fetch: vi.fn().mockResolvedValueOnce(
+        jsonResponse({
+          data: {
+            numResults: 1,
+            result: [{ bvid: "BV1xx411c7mD", title: "Live", author: "Uploader", pic: "cover.jpg" }],
+          },
+        }),
+      ),
+    };
+
+    await expect(bilibiliProvider.search({ keyword: "live" }, context)).resolves.toMatchObject({
+      source: "bilibili",
+      total: 1,
+      songs: [
+        { id: "BV1xx411c7mD", playbackMode: "external", externalUrl: "https://www.bilibili.com/video/BV1xx411c7mD" },
+      ],
+    });
+    await expect(bilibiliProvider.playableUrl("BV1xx411c7mD", context)).resolves.toEqual({
+      source: "bilibili",
+      url: "https://www.bilibili.com/video/BV1xx411c7mD",
+      quality: "external",
     });
   });
 
@@ -480,7 +523,14 @@ describe("music providers", () => {
 
     const results = await searchAcrossProviders({ keyword: "x" }, context);
 
-    expect(results.map((result) => result.source).sort()).toEqual(["deezer", "itunes", "migu", "netease", "qq"]);
+    expect(results.map((result) => result.source).sort()).toEqual([
+      "bilibili",
+      "deezer",
+      "itunes",
+      "migu",
+      "netease",
+      "qq",
+    ]);
   });
 
   it("orders provider groups by the best normalized quality score", async () => {

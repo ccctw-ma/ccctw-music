@@ -47,6 +47,8 @@ export interface Song {
   playableUrl?: string | null;
   coverUrl?: string | null;
   quality: SongQuality;
+  playbackMode?: "audio" | "video" | "external";
+  externalUrl?: string;
   raw?: unknown;
 }
 
