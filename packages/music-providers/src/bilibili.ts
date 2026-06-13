@@ -16,6 +16,14 @@ interface BilibiliSearchResponse {
   };
 }
 
+const BILIBILI_SEARCH_HEADERS = {
+  Accept: "application/json, text/plain, */*",
+  "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+  Origin: "https://search.bilibili.com",
+  Referer: "https://search.bilibili.com/",
+  Cookie: "buvid3=00000000-0000-4000-8000-00000000000000000infoc; b_nut=1710000000",
+};
+
 export const bilibiliProvider: MusicProvider = {
   source: "bilibili",
 
@@ -30,9 +38,7 @@ export const bilibiliProvider: MusicProvider = {
       context.fetch,
       `https://api.bilibili.com/x/web-interface/search/type?${params.toString()}`,
       {
-        headers: {
-          Referer: "https://search.bilibili.com",
-        },
+        headers: BILIBILI_SEARCH_HEADERS,
       },
     );
     const songs = formatSongs(data.data?.result ?? [], "bilibili");

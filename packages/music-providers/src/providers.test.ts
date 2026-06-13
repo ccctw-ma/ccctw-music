@@ -426,6 +426,17 @@ describe("music providers", () => {
         { id: "BV1xx411c7mD", playbackMode: "external", externalUrl: "https://www.bilibili.com/video/BV1xx411c7mD" },
       ],
     });
+    expect(context.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("search_type=video"),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Accept: "application/json, text/plain, */*",
+          Origin: "https://search.bilibili.com",
+          Referer: "https://search.bilibili.com/",
+          Cookie: expect.stringContaining("buvid3="),
+        }),
+      }),
+    );
     await expect(bilibiliProvider.playableUrl("BV1xx411c7mD", context)).resolves.toEqual({
       source: "bilibili",
       url: "https://www.bilibili.com/video/BV1xx411c7mD",
