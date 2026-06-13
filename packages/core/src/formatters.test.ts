@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatMiguSong, formatNeteaseSong, formatQqSong, formatSongs } from "./formatters";
+import {
+  formatDeezerSong,
+  formatItunesSong,
+  formatMiguSong,
+  formatNeteaseSong,
+  formatQqSong,
+  formatSongs,
+} from "./formatters";
 
 describe("song formatters", () => {
   it("normalizes migu songs from legacy fields", () => {
@@ -83,6 +90,55 @@ describe("song formatters", () => {
       quality: { sourceLabel: "QQ 音乐", official: true, free: false, quality: "high" },
     });
     expect(song.coverUrl).toContain("album-mid");
+  });
+
+  it("normalizes itunes preview songs with larger artwork", () => {
+    expect(
+      formatItunesSong({
+        trackId: 123,
+        trackName: "iTunes Song",
+        artistId: 9,
+        artistName: "Artist",
+        collectionId: 8,
+        collectionName: "Album",
+        artworkUrl100: "https://is1-ssl.mzstatic.com/image/thumb/Music/100x100bb.jpg",
+        previewUrl: "https://audio.example.com/preview.m4a",
+        trackTimeMillis: 180000,
+      }),
+    ).toMatchObject({
+      id: "123",
+      source: "itunes",
+      name: "iTunes Song",
+      artists: [{ id: "9", name: "Artist" }],
+      album: { id: "8", name: "Album", source: "itunes" },
+      duration: 180,
+      playableUrl: "https://audio.example.com/preview.m4a",
+      coverUrl: "https://is1-ssl.mzstatic.com/image/thumb/Music/600x600bb.jpg",
+      quality: { sourceLabel: "iTunes", playable: true, quality: "high" },
+    });
+  });
+
+  it("normalizes deezer preview songs", () => {
+    expect(
+      formatDeezerSong({
+        id: 456,
+        title_short: "Deezer Song",
+        duration: 200,
+        preview: "https://cdns-preview.dzcdn.net/preview.mp3",
+        artist: { id: 7, name: "Singer" },
+        album: { id: 6, title: "DZ Album", cover_xl: "https://e-cdns-images.dzcdn.net/cover.jpg" },
+      }),
+    ).toMatchObject({
+      id: "456",
+      source: "deezer",
+      name: "Deezer Song",
+      artists: [{ id: "7", name: "Singer" }],
+      album: { id: "6", name: "DZ Album", source: "deezer" },
+      duration: 200,
+      playableUrl: "https://cdns-preview.dzcdn.net/preview.mp3",
+      coverUrl: "https://e-cdns-images.dzcdn.net/cover.jpg",
+      quality: { sourceLabel: "Deezer", playable: true, quality: "high" },
+    });
   });
 
   it("filters empty normalized songs and ignores unsupported sources", () => {

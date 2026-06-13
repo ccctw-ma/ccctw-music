@@ -68,10 +68,30 @@ function qualityFor(
   input: { playable?: boolean; lossless?: boolean; high?: boolean },
 ): SongQuality {
   const sourceLabel =
-    source === "migu" ? "咪咕音乐" : source === "netease" ? "网易云音乐" : source === "qq" ? "QQ 音乐" : source;
-  const official = source === "migu" || source === "netease" || source === "qq";
+    source === "migu"
+      ? "咪咕音乐"
+      : source === "netease"
+        ? "网易云音乐"
+        : source === "qq"
+          ? "QQ 音乐"
+          : source === "itunes"
+            ? "iTunes"
+            : source === "deezer"
+              ? "Deezer"
+              : source;
+  const official =
+    source === "migu" || source === "netease" || source === "qq" || source === "itunes" || source === "deezer";
   const quality = input.lossless ? "lossless" : input.high ? "high" : input.playable ? "standard" : "unknown";
-  const sourceScore = source === "migu" ? 30 : source === "qq" ? 24 : source === "netease" ? 22 : 10;
+  const sourceScore =
+    source === "migu"
+      ? 30
+      : source === "qq"
+        ? 24
+        : source === "netease"
+          ? 22
+          : source === "itunes" || source === "deezer"
+            ? 18
+            : 10;
   const score =
     sourceScore +
     (official ? 20 : 0) +
@@ -189,6 +209,67 @@ export function formatQqSong(raw: UnknownRecord): Song {
   };
 }
 
+export function formatItunesSong(raw: UnknownRecord): Song {
+  const id = raw.trackId ?? raw.collectionId;
+  const coverUrl = normalizeCoverUrl(
+    typeof raw.artworkUrl100 === "string" ? raw.artworkUrl100.replace("100x100bb", "600x600bb") : raw.artworkUrl100,
+  );
+  const playableUrl = normalizeCoverUrl(raw.previewUrl);
+
+  return {
+    id: String(id ?? ""),
+    source: "itunes",
+    name: String(raw.trackName ?? raw.collectionName ?? ""),
+    artists: raw.artistName
+      ? [{ id: raw.artistId ? String(raw.artistId) : undefined, name: String(raw.artistName) }]
+      : [],
+    album: {
+      id: raw.collectionId ? String(raw.collectionId) : undefined,
+      name: raw.collectionName,
+      coverUrl,
+      source: "itunes",
+      raw,
+    },
+    duration: typeof raw.trackTimeMillis === "number" ? Math.round(raw.trackTimeMillis / 1000) : undefined,
+    playableUrl,
+    coverUrl: coverUrl ?? null,
+    quality: qualityFor("itunes", {
+      playable: Boolean(playableUrl),
+      high: true,
+    }),
+    raw,
+  };
+}
+
+export function formatDeezerSong(raw: UnknownRecord): Song {
+  const album = isRecord(raw.album) ? raw.album : {};
+  const artist = isRecord(raw.artist) ? raw.artist : {};
+  const coverUrl = normalizeCoverUrl(album.cover_xl ?? album.cover_big ?? album.cover_medium ?? album.cover);
+  const playableUrl = normalizeCoverUrl(raw.preview);
+
+  return {
+    id: String(raw.id ?? ""),
+    source: "deezer",
+    name: String(raw.title_short ?? raw.title ?? ""),
+    artists: artist.name ? [{ id: artist.id ? String(artist.id) : undefined, name: String(artist.name) }] : [],
+    album: {
+      id: album.id ? String(album.id) : undefined,
+      name: album.title,
+      coverUrl,
+      source: "deezer",
+      raw: album,
+    },
+    duration: typeof raw.duration === "number" ? raw.duration : undefined,
+    playableUrl,
+    coverUrl: coverUrl ?? null,
+    quality: qualityFor("deezer", {
+      playable: Boolean(playableUrl),
+      high: true,
+    }),
+    raw,
+  };
+}
+
 export function formatSongs(rawSongs: unknown[], source: MusicSource): Song[] {
   if (!Array.isArray(rawSongs)) {
     return [];
@@ -214,6 +295,22 @@ export function formatSongs(rawSongs: unknown[], source: MusicSource): Song[] {
     return rawSongs
       .filter(isRecord)
       .map((song) => formatQqSong(song))
+      .filter((song) => song.id && song.name)
+      .sort((left, right) => right.quality.score - left.quality.score);
+  }
+
+  if (source === "itunes") {
+    return rawSongs
+      .filter(isRecord)
+      .map((song) => formatItunesSong(song))
+      .filter((song) => song.id && song.name)
+      .sort((left, right) => right.quality.score - left.quality.score);
+  }
+
+  if (source === "deezer") {
+    return rawSongs
+      .filter(isRecord)
+      .map((song) => formatDeezerSong(song))
       .filter((song) => song.id && song.name)
       .sort((left, right) => right.quality.score - left.quality.score);
   }

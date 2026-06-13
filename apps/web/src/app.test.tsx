@@ -204,7 +204,7 @@ describe("App", () => {
     expect((await screen.findAllByRole("button", { name: /播放 晴天/ })).length).toBeGreaterThan(0);
     expect(directMocks.searchDirectMusic).toHaveBeenCalledWith({
       keyword: "周杰伦",
-      sources: ["migu", "netease", "qq"],
+      sources: ["migu", "netease", "qq", "itunes", "deezer"],
     });
     expect(apiMocks.search).toHaveBeenCalledWith({ keyword: "周杰伦", sources: ["migu", "netease", "qq"] });
   });

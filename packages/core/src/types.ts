@@ -1,4 +1,4 @@
-export type MusicSource = "netease" | "qq" | "migu" | "bilibili" | "other";
+export type MusicSource = "netease" | "qq" | "migu" | "itunes" | "deezer" | "bilibili" | "other";
 
 export interface Artist {
   id?: string;

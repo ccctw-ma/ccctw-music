@@ -32,6 +32,16 @@ interface QqSearchResponse {
   };
 }
 
+interface ItunesSearchResponse {
+  resultCount?: number;
+  results?: unknown[];
+}
+
+interface DeezerSearchResponse {
+  total?: number;
+  data?: unknown[];
+}
+
 function toSearchParams(input: Record<string, string | number | undefined>) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(input)) {
@@ -147,12 +157,48 @@ async function searchQq(input: DirectSearchInput, fetcher: typeof fetch): Promis
   };
 }
 
+async function searchItunes(input: DirectSearchInput, fetcher: typeof fetch): Promise<SearchResult> {
+  const params = toSearchParams({
+    term: input.keyword,
+    media: "music",
+    entity: "song",
+    limit: input.pageSize ?? 30,
+    offset: ((input.page ?? 1) - 1) * (input.pageSize ?? 30),
+  });
+  const data = await fetcher(`https://itunes.apple.com/search?${params.toString()}`, {
+    signal: AbortSignal.timeout(6500),
+  }).then((response) => readJson<ItunesSearchResponse>(response));
+  const songs = formatSongs(data.results ?? [], "itunes");
+  return {
+    source: "itunes",
+    total: data.resultCount ?? songs.length,
+    songs,
+  };
+}
+
+async function searchDeezer(input: DirectSearchInput, fetcher: typeof fetch): Promise<SearchResult> {
+  const params = toSearchParams({
+    q: input.keyword,
+    limit: input.pageSize ?? 30,
+    index: ((input.page ?? 1) - 1) * (input.pageSize ?? 30),
+  });
+  const data = await fetcher(`https://api.deezer.com/search?${params.toString()}`, {
+    signal: AbortSignal.timeout(6500),
+  }).then((response) => readJson<DeezerSearchResponse>(response));
+  const songs = formatSongs(data.data ?? [], "deezer");
+  return {
+    source: "deezer",
+    total: data.total ?? songs.length,
+    songs,
+  };
+}
+
 function bestScore(result: SearchResult) {
   return result.songs[0]?.quality.score ?? 0;
 }
 
 function isLikelyResolvable(song: Song) {
-  return Boolean(song.playableUrl) || song.source === "netease";
+  return Boolean(song.playableUrl) || song.source === "migu" || song.source === "netease";
 }
 
 function bestPlaybackPriority(result: SearchResult) {
@@ -171,6 +217,12 @@ export async function searchDirectMusic(input: DirectSearchInput, fetcher: typeo
       }
       if (source === "qq") {
         return searchQq(input, fetcher);
+      }
+      if (source === "itunes") {
+        return searchItunes(input, fetcher);
+      }
+      if (source === "deezer") {
+        return searchDeezer(input, fetcher);
       }
       throw new Error(`Unsupported direct source: ${source}`);
     }),

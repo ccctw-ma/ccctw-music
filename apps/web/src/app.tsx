@@ -29,7 +29,8 @@ const apiClient = createMusicApiClient({
   baseUrl: import.meta.env.PUBLIC_API_BASE_URL ?? "/api",
 });
 
-const SOURCES = ["migu", "netease", "qq"] as const;
+const DOMESTIC_SOURCES = ["migu", "netease", "qq"] as const;
+const SOURCES = ["migu", "netease", "qq", "itunes", "deezer"] as const;
 
 function bestScore(result: SearchResult) {
   return result.songs[0]?.quality?.score ?? 0;
@@ -45,7 +46,7 @@ function resultPlaybackPriority(result: SearchResult) {
 
 async function searchWithBrowserFirst(keyword: string) {
   const direct = await searchDirectMusic({ keyword, sources: [...SOURCES] });
-  const serverResults = await apiClient.search({ keyword, sources: [...SOURCES] }).catch(() => []);
+  const serverResults = await apiClient.search({ keyword, sources: [...DOMESTIC_SOURCES] }).catch(() => []);
   const serverBySource = new Map(serverResults.map((result) => [result.source, result]));
   const directBySource = new Map(direct.results.map((result) => [result.source, result]));
   const merged = SOURCES.flatMap((source) => {
@@ -103,6 +104,8 @@ function sourceName(source?: string) {
     migu: "MiGu",
     netease: "NetEase",
     qq: "QQ",
+    itunes: "iTunes",
+    deezer: "Deezer",
   };
   return source ? (names[source] ?? source) : "Source";
 }

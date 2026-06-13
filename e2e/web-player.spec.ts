@@ -56,6 +56,8 @@ async function mockApi(page: Page) {
   await page.route(/https:\/\/m\.music\.migu\.cn\/migu\/remoting\/scr_search_tag.*/, (route) => route.abort());
   await page.route(/https:\/\/music\.163\.com\/api\/search\/get.*/, (route) => route.abort());
   await page.route(/https:\/\/c\.y\.qq\.com\/soso\/fcgi-bin\/client_search_cp.*/, (route) => route.abort());
+  await page.route(/https:\/\/itunes\.apple\.com\/search.*/, (route) => route.abort());
+  await page.route(/https:\/\/api\.deezer\.com\/search.*/, (route) => route.abort());
 
   await page.route(/.*\/(?:api\/)?v1\/search.*/, async (route) => {
     const url = new URL(route.request().url());

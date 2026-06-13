@@ -107,6 +107,63 @@ describe("searchDirectMusic", () => {
     ]);
   });
 
+  it("searches itunes and deezer as browser-accessible preview sources", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          resultCount: 1,
+          results: [
+            {
+              trackId: 1,
+              trackName: "iTunes Song",
+              artistName: "A",
+              previewUrl: "https://audio.example.com/itunes.m4a",
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          total: 1,
+          data: [
+            {
+              id: 2,
+              title: "Deezer Song",
+              preview: "https://audio.example.com/deezer.mp3",
+              artist: { name: "D" },
+            },
+          ],
+        }),
+      );
+
+    const result = await searchDirectMusic({ keyword: "x", sources: ["itunes", "deezer"] }, fetcher);
+
+    expect(result.failedSources).toEqual([]);
+    expect(result.results.map((group) => group.source)).toEqual(["itunes", "deezer"]);
+    expect(result.results[0].songs[0]).toMatchObject({
+      source: "itunes",
+      playableUrl: "https://audio.example.com/itunes.m4a",
+      quality: { playable: true },
+    });
+    expect(result.results[1].songs[0]).toMatchObject({
+      source: "deezer",
+      playableUrl: "https://audio.example.com/deezer.mp3",
+      quality: { playable: true },
+    });
+  });
+
+  it("prioritizes playable migu direct results over non-playable sources", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ data: { song: { list: [{ songmid: "q1", songname: "QQ" }] } } }))
+      .mockResolvedValueOnce(jsonResponse({ musics: [{ id: "m1", songName: "Migu", mp3: "migu.mp3" }] }));
+
+    const result = await searchDirectMusic({ keyword: "x", sources: ["qq", "migu"] }, fetcher);
+
+    expect(result.results.map((group) => group.source)).toEqual(["migu", "qq"]);
+  });
+
   it("keeps netease search results when detail enrichment is unavailable", async () => {
     const fetcher = vi
       .fn()
