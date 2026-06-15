@@ -6,7 +6,7 @@ import {
   type SearchResult,
   type Song,
 } from "@ccctw-music/core";
-import { getJson, toSearchParams } from "./http";
+import { getJson, getJsonWithProxyFallback, toSearchParams } from "./http";
 import type { MusicProvider, PlayableUrl, ProviderContext } from "./types";
 
 interface ItunesSearchResponse {
@@ -26,9 +26,11 @@ export const itunesProvider: MusicProvider = {
       limit: pageSize,
       offset: ((input.page ?? 1) - 1) * pageSize,
     });
-    const data = await getJson<ItunesSearchResponse>(
-      context.fetch,
+    const data = await getJsonWithProxyFallback<ItunesSearchResponse>(
+      context,
       `https://itunes.apple.com/search?${params.toString()}`,
+      undefined,
+      (value) => (value.results?.length ?? 0) === 0,
     );
     const songs = formatSongs(data.results ?? [], "itunes");
     return {

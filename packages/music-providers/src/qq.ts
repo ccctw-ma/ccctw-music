@@ -6,7 +6,7 @@ import {
   type SearchResult,
   type Song,
 } from "@ccctw-music/core";
-import { getJson, toSearchParams } from "./http";
+import { getJson, getJsonWithProxyFallback, toSearchParams } from "./http";
 import type { MusicProvider, PlayableUrl, ProviderContext } from "./types";
 
 interface QqSearchResponse {
@@ -71,14 +71,15 @@ export const qqProvider: MusicProvider = {
       outCharset: "utf-8",
       cr: 1,
     });
-    const data = await getJson<QqSearchResponse>(
-      context.fetch,
+    const data = await getJsonWithProxyFallback<QqSearchResponse>(
+      context,
       `https://c.y.qq.com/soso/fcgi-bin/client_search_cp?${params.toString()}`,
       {
         headers: {
           Referer: "https://y.qq.com",
         },
       },
+      (value) => (value.data?.song?.list?.length ?? 0) === 0,
     );
 
     const songs = formatSongs(data.data?.song?.list ?? [], "qq");

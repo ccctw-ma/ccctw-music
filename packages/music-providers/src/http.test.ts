@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchWithTimeout, getJson, toSearchParams } from "./http";
+import { fetchWithTimeout, getJson, getJsonWithProxyFallback, toSearchParams, withProxy } from "./http";
 
 describe("http helpers", () => {
   it("parses jsonp-like responses", async () => {
@@ -74,5 +74,69 @@ describe("http helpers", () => {
 
     expect(params.toString()).toBe("keyword=abc&page=1");
     expect(params.has("empty")).toBe(false);
+  });
+
+  it("returns the target url unchanged when no proxy is configured", () => {
+    expect(withProxy(undefined, "https://example.com/a?b=1")).toBe("https://example.com/a?b=1");
+  });
+
+  it("supports placeholder and append-style proxy formats", () => {
+    expect(withProxy("https://proxy/{url}", "https://e.com/a")).toBe(
+      `https://proxy/${encodeURIComponent("https://e.com/a")}`,
+    );
+    expect(withProxy("https://proxy/?url=", "https://e.com/a")).toBe(
+      `https://proxy/?url=${encodeURIComponent("https://e.com/a")}`,
+    );
+  });
+
+  it("returns the direct response when it is not empty", async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, text: async () => '{"items":[1]}' });
+    const data = await getJsonWithProxyFallback<{ items: number[] }>(
+      { fetch: fetcher },
+      "https://example.com",
+      undefined,
+      (value) => value.items.length === 0,
+    );
+    expect(data).toEqual({ items: [1] });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns the empty direct response when no proxy is configured", async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, text: async () => '{"items":[]}' });
+    const data = await getJsonWithProxyFallback<{ items: number[] }>(
+      { fetch: fetcher },
+      "https://example.com",
+      undefined,
+      (value) => value.items.length === 0,
+    );
+    expect(data).toEqual({ items: [] });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws when the direct request fails and no proxy is configured", async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: false, status: 500, statusText: "Error" });
+    await expect(
+      getJsonWithProxyFallback<{ items: number[] }>(
+        { fetch: fetcher },
+        "https://example.com",
+        undefined,
+        (value) => value.items.length === 0,
+      ),
+    ).rejects.toThrow("Upstream request failed");
+  });
+
+  it("falls back to an empty direct response when the proxy also fails", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, text: async () => '{"items":[]}' })
+      .mockResolvedValueOnce({ ok: false, status: 500, statusText: "Error" });
+    const data = await getJsonWithProxyFallback<{ items: number[] }>(
+      { fetch: fetcher, proxyUrl: "https://proxy/?url=" },
+      "https://example.com",
+      undefined,
+      (value) => value.items.length === 0,
+    );
+    expect(data).toEqual({ items: [] });
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
 });

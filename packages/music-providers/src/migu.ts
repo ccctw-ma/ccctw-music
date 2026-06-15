@@ -10,13 +10,21 @@ import { getJson, toSearchParams } from "./http";
 import type { MusicProvider, PlayableUrl, ProviderContext } from "./types";
 
 interface MiguSearchResponse {
-  musics?: unknown[];
-  pgt?: number;
+  songResultData?: {
+    totalCount?: string;
+    result?: unknown[];
+  };
 }
 
 interface MiguResourceInfoResponse {
   resource?: unknown[];
 }
+
+const MIGU_HEADERS = {
+  Referer: "https://m.music.migu.cn/v3",
+  "User-Agent":
+    "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
+};
 
 async function miguSongDetail(id: string, context: ProviderContext) {
   const params = toSearchParams({
@@ -40,25 +48,23 @@ export const miguProvider: MusicProvider = {
 
   async search(input: SearchInput, context: ProviderContext): Promise<SearchResult> {
     const params = toSearchParams({
-      keyword: input.keyword,
-      pgc: input.page ?? 1,
-      rows: input.pageSize ?? 30,
-      type: 2,
+      text: input.keyword,
+      pageNo: input.page ?? 1,
+      pageSize: input.pageSize ?? 30,
+      searchSwitch: '{"song":1}',
     });
     const data = await getJson<MiguSearchResponse>(
       context.fetch,
-      `https://m.music.migu.cn/migu/remoting/scr_search_tag?${params.toString()}`,
+      `https://pd.musicapp.migu.cn/MIGUM2.0/v1.0/content/search_all.do?${params.toString()}`,
       {
-        headers: {
-          referer: "https://m.music.migu.cn/v3",
-        },
+        headers: MIGU_HEADERS,
       },
     );
 
-    const songs = formatSongs(data.musics ?? [], "migu");
+    const songs = formatSongs(data.songResultData?.result ?? [], "migu");
     return {
       source: "migu",
-      total: data.pgt ?? songs.length,
+      total: Number(data.songResultData?.totalCount ?? songs.length) || songs.length,
       songs,
     };
   },

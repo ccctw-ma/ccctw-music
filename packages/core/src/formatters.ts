@@ -40,12 +40,31 @@ function firstString(...values: unknown[]): string | undefined {
 }
 
 function miguCoverUrl(raw: UnknownRecord): string | undefined {
-  const albumImages = raw.albumImgs;
-  if (Array.isArray(albumImages)) {
+  const albumImages = Array.isArray(raw.albumImgs)
+    ? raw.albumImgs
+    : Array.isArray(raw.imgItems)
+      ? raw.imgItems
+      : undefined;
+  if (albumImages) {
     const image = albumImages.find((item) => item?.imgSizeType === "03") ?? albumImages.at(-1);
     return normalizeCoverUrl(image?.img ?? image?.webpImg ?? image?.imgOri);
   }
   return normalizeCoverUrl(raw.cover ?? raw.coverUrl ?? raw.picUrl);
+}
+
+function miguArtists(raw: UnknownRecord): { name: string }[] {
+  if (Array.isArray(raw.singers)) {
+    return raw.singers.map((singer) => ({ name: String(singer?.name ?? "").trim() })).filter((singer) => singer.name);
+  }
+  return artistsFromNames(raw.singerName ?? raw.singer);
+}
+
+function miguAlbum(raw: UnknownRecord): { id?: string; name?: string } {
+  if (Array.isArray(raw.albums) && raw.albums[0]) {
+    const album = raw.albums[0];
+    return { id: album.id ? String(album.id) : undefined, name: album.name };
+  }
+  return { id: raw.albumId ? String(raw.albumId) : undefined, name: raw.albumName ?? raw.album };
 }
 
 function neteaseCoverUrl(raw: UnknownRecord, album: UnknownRecord): string | undefined {
@@ -153,20 +172,21 @@ export function formatMiguSong(raw: UnknownRecord): Song {
       ),
     ) ?? null;
   const formatTypes = formats.map((item) => String(item?.formatType ?? "").toUpperCase());
+  const album = miguAlbum(raw);
   return {
-    id: String(raw.id ?? raw.copyrightId ?? raw.songId ?? ""),
+    id: String(raw.copyrightId ?? raw.id ?? raw.songId ?? ""),
     source: "migu",
     name: String(raw.songName ?? raw.name ?? ""),
-    artists: artistsFromNames(raw.singerName ?? raw.singer),
+    artists: miguArtists(raw),
     album: {
-      id: raw.albumId ? String(raw.albumId) : undefined,
-      name: raw.albumName ?? raw.album,
+      id: album.id,
+      name: album.name,
       coverUrl,
       source: "migu",
       raw,
     },
     duration: miguDuration(raw),
-    lyricUrl: raw.lyrics ?? raw.lrcUrl,
+    lyricUrl: raw.lyrics ?? raw.lrcUrl ?? raw.lyricUrl,
     playableUrl,
     coverUrl: coverUrl ?? null,
     quality: qualityFor("migu", {

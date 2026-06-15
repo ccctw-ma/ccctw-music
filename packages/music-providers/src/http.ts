@@ -47,3 +47,43 @@ export function toSearchParams(input: Record<string, string | number | undefined
   }
   return params;
 }
+
+/**
+ * Wrap an upstream URL with a configured proxy endpoint. The proxy URL may use a
+ * `{url}` placeholder (replaced with the encoded target). When no placeholder is
+ * present, the encoded target is appended, which matches common `?url=`-style proxies.
+ */
+export function withProxy(proxyUrl: string | undefined, targetUrl: string): string {
+  if (!proxyUrl) {
+    return targetUrl;
+  }
+  const encoded = encodeURIComponent(targetUrl);
+  if (proxyUrl.includes("{url}")) {
+    return proxyUrl.replace("{url}", encoded);
+  }
+  return `${proxyUrl}${encoded}`;
+}
+
+export async function getJsonWithProxyFallback<T>(
+  context: { fetch: typeof fetch; proxyUrl?: string },
+  url: string,
+  init: RequestInit | undefined,
+  isEmpty: (data: T) => boolean,
+): Promise<T> {
+  const direct = await getJson<T>(context.fetch, url, init).catch(() => null);
+  if (direct && !isEmpty(direct)) {
+    return direct;
+  }
+
+  if (context.proxyUrl) {
+    const proxied = await getJson<T>(context.fetch, withProxy(context.proxyUrl, url), init).catch(() => null);
+    if (proxied) {
+      return proxied;
+    }
+  }
+
+  if (direct) {
+    return direct;
+  }
+  throw new Error(`Upstream request failed for ${url}`);
+}

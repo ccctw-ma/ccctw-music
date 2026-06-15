@@ -8,8 +8,10 @@ interface DirectSearchInput {
 }
 
 interface MiguSearchResponse {
-  musics?: unknown[];
-  pgt?: number;
+  songResultData?: {
+    totalCount?: string;
+    result?: unknown[];
+  };
 }
 
 interface NeteaseSearchResponse {
@@ -64,18 +66,18 @@ async function readJson<T>(response: Response): Promise<T> {
 
 async function searchMigu(input: DirectSearchInput, fetcher: typeof fetch): Promise<SearchResult> {
   const params = toSearchParams({
-    keyword: input.keyword,
-    pgc: input.page ?? 1,
-    rows: input.pageSize ?? 30,
-    type: 2,
+    text: input.keyword,
+    pageNo: input.page ?? 1,
+    pageSize: input.pageSize ?? 30,
+    searchSwitch: '{"song":1}',
   });
-  const data = await fetcher(`https://m.music.migu.cn/migu/remoting/scr_search_tag?${params.toString()}`, {
+  const data = await fetcher(`https://pd.musicapp.migu.cn/MIGUM2.0/v1.0/content/search_all.do?${params.toString()}`, {
     signal: AbortSignal.timeout(6500),
   }).then((response) => readJson<MiguSearchResponse>(response));
-  const songs = formatSongs(data.musics ?? [], "migu");
+  const songs = formatSongs(data.songResultData?.result ?? [], "migu");
   return {
     source: "migu",
-    total: data.pgt ?? songs.length,
+    total: Number(data.songResultData?.totalCount ?? songs.length) || songs.length,
     songs,
   };
 }

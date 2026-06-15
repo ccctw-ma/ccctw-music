@@ -37,8 +37,19 @@ describe("music providers", () => {
     const context: ProviderContext = {
       fetch: vi.fn().mockResolvedValue(
         jsonResponse({
-          musics: [{ id: "1", songName: "Migu", singerName: "Singer", mp3: "url" }],
-          pgt: 1,
+          songResultData: {
+            totalCount: "1",
+            result: [
+              {
+                copyrightId: "c1",
+                name: "Migu",
+                singers: [{ id: "9", name: "Singer" }],
+                albums: [{ id: "5", name: "Album" }],
+                imgItems: [{ imgSizeType: "03", img: "https://d.musicapp.migu.cn/cover.webp" }],
+                rateFormats: [{ formatType: "PQ", url: "https://migu.example/audio.mp3" }],
+              },
+            ],
+          },
         }),
       ),
     };
@@ -46,8 +57,17 @@ describe("music providers", () => {
     await expect(miguProvider.search({ keyword: "migu" }, context)).resolves.toMatchObject({
       source: "migu",
       total: 1,
-      songs: [{ id: "1", name: "Migu", playableUrl: "url" }],
+      songs: [
+        {
+          id: "c1",
+          name: "Migu",
+          artists: [{ name: "Singer" }],
+          album: { id: "5", name: "Album", coverUrl: "https://d.musicapp.migu.cn/cover.webp" },
+          playableUrl: "https://migu.example/audio.mp3",
+        },
+      ],
     });
+    expect(context.fetch).toHaveBeenCalledWith(expect.stringContaining("search_all.do"), expect.anything());
   });
 
   it("loads migu detail, playable url and lyric", async () => {
@@ -107,7 +127,7 @@ describe("music providers", () => {
         .fn()
         .mockResolvedValueOnce(jsonResponse({}))
         .mockResolvedValueOnce(
-          jsonResponse({ musics: [{ copyrightId: "fallback", songName: "Fallback", singer: "A" }] }),
+          jsonResponse({ songResultData: { result: [{ copyrightId: "fallback", name: "Fallback", singers: [] }] } }),
         ),
     };
 
@@ -378,6 +398,46 @@ describe("music providers", () => {
     });
   });
 
+  it("retries qq search through the proxy when the direct response is empty", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ data: { song: { list: [] } } }))
+      .mockResolvedValueOnce(
+        jsonResponse({ data: { song: { totalnum: 1, list: [{ songmid: "p1", songname: "Proxied", singer: [] }] } } }),
+      );
+    const context: ProviderContext = {
+      fetch: fetcher,
+      proxyUrl: "https://proxy.example/?url={url}",
+    };
+
+    await expect(qqProvider.search({ keyword: "proxy" }, context)).resolves.toMatchObject({
+      source: "qq",
+      total: 1,
+      songs: [{ id: "p1", name: "Proxied" }],
+    });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher).toHaveBeenLastCalledWith(expect.stringContaining("https://proxy.example/?url="), expect.anything());
+  });
+
+  it("retries itunes search through the proxy when blocked", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ resultCount: 0, results: [] }))
+      .mockResolvedValueOnce(
+        jsonResponse({ resultCount: 1, results: [{ trackId: 9, trackName: "Proxied", artistName: "A" }] }),
+      );
+    const context: ProviderContext = {
+      fetch: fetcher,
+      proxyUrl: "https://proxy.example/",
+    };
+
+    await expect(itunesProvider.search({ keyword: "proxy" }, context)).resolves.toMatchObject({
+      source: "itunes",
+      songs: [{ id: "9", name: "Proxied" }],
+    });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
   it("returns null for empty qq detail search", async () => {
     const context: ProviderContext = {
       fetch: vi.fn().mockResolvedValueOnce(jsonResponse({ data: { song: { list: [] } } })),
@@ -626,7 +686,18 @@ describe("music providers", () => {
           }),
         )
         .mockResolvedValueOnce(
-          jsonResponse({ musics: [{ id: "1", songName: "Migu", singerName: "A", mp3: "migu.mp3" }] }),
+          jsonResponse({
+            songResultData: {
+              result: [
+                {
+                  copyrightId: "1",
+                  name: "Migu",
+                  singers: [{ name: "A" }],
+                  rateFormats: [{ formatType: "PQ", url: "migu.mp3" }],
+                },
+              ],
+            },
+          }),
         ),
     };
 

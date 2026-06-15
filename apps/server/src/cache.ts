@@ -4,6 +4,7 @@ import type { Env } from "./env";
 export function createProviderContext(env: Env): ProviderContext {
   return {
     fetch,
+    proxyUrl: env.MUSIC_PROXY_URL,
     cache: env.MUSIC_CACHE
       ? {
           async get<T>(key: string) {

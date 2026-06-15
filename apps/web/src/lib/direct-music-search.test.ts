@@ -13,7 +13,18 @@ describe("searchDirectMusic", () => {
     const fetcher = vi
       .fn()
       .mockResolvedValueOnce(
-        jsonResponse({ musics: [{ id: "m1", songName: "Migu", singerName: "A", mp3: "migu.mp3" }] }),
+        jsonResponse({
+          songResultData: {
+            result: [
+              {
+                copyrightId: "m1",
+                name: "Migu",
+                singers: [{ name: "A" }],
+                rateFormats: [{ formatType: "PQ", url: "https://migu.example/migu.mp3" }],
+              },
+            ],
+          },
+        }),
       )
       .mockResolvedValueOnce(
         jsonResponse({
@@ -90,7 +101,7 @@ describe("searchDirectMusic", () => {
   it("handles empty direct provider payloads", async () => {
     const fetcher = vi
       .fn()
-      .mockResolvedValueOnce(jsonResponse({ pgt: 9 }))
+      .mockResolvedValueOnce(jsonResponse({ songResultData: { totalCount: "9" } }))
       .mockResolvedValueOnce(jsonResponse({}))
       .mockResolvedValueOnce(jsonResponse({ data: { song: {} } }));
 
@@ -157,7 +168,13 @@ describe("searchDirectMusic", () => {
     const fetcher = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse({ data: { song: { list: [{ songmid: "q1", songname: "QQ" }] } } }))
-      .mockResolvedValueOnce(jsonResponse({ musics: [{ id: "m1", songName: "Migu", mp3: "migu.mp3" }] }));
+      .mockResolvedValueOnce(
+        jsonResponse({
+          songResultData: {
+            result: [{ copyrightId: "m1", name: "Migu", rateFormats: [{ formatType: "PQ", url: "migu.mp3" }] }],
+          },
+        }),
+      );
 
     const result = await searchDirectMusic({ keyword: "x", sources: ["qq", "migu"] }, fetcher);
 
@@ -200,7 +217,8 @@ describe("searchDirectMusic", () => {
   it("deduplicates direct sources and parses jsonp wrappers", async () => {
     const fetcher = vi.fn().mockResolvedValue({
       ok: true,
-      text: async () => 'callback({"musics":[{"id":"m1","songName":"Migu","singerName":"A"}],"pgt":1})',
+      text: async () =>
+        'callback({"songResultData":{"totalCount":"1","result":[{"copyrightId":"m1","name":"Migu","singers":[{"name":"A"}]}]}})',
     });
 
     const result = await searchDirectMusic({ keyword: "x", sources: ["migu", "migu"] }, fetcher);
