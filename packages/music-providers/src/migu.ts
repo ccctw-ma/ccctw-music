@@ -26,6 +26,39 @@ const MIGU_HEADERS = {
     "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
 };
 
+const MIGU_LISTEN_CHANNEL = "0146951";
+const MIGU_TONE_FLAGS = ["PQ", "HQ", "LQ"];
+
+function miguContentId(song: Song | null): string | undefined {
+  const raw = song?.raw as { contentId?: unknown } | undefined;
+  const contentId = raw?.contentId;
+  return typeof contentId === "string" && contentId ? contentId : undefined;
+}
+
+async function miguListenUrl(contentId: string, toneFlag: string, context: ProviderContext): Promise<string | null> {
+  const params = toSearchParams({
+    toneFlag,
+    netType: "01",
+    channel: MIGU_LISTEN_CHANNEL,
+    contentId,
+    resourceType: 2,
+    copyrightId: 0,
+  });
+  const response = await context.fetch(
+    `https://app.pd.nf.migu.cn/MIGUM2.0/v1.0/content/sub/listenSong.do?${params.toString()}`,
+    {
+      redirect: "manual",
+      headers: MIGU_HEADERS,
+      signal: AbortSignal.timeout(8000),
+    },
+  );
+  const location = response.headers?.get("location");
+  if (location && /^https?:\/\//.test(location)) {
+    return location;
+  }
+  return null;
+}
+
 async function miguSongDetail(id: string, context: ProviderContext) {
   const params = toSearchParams({
     copyrightId: id,
@@ -81,9 +114,27 @@ export const miguProvider: MusicProvider = {
 
   async playableUrl(id: string, context: ProviderContext): Promise<PlayableUrl> {
     const detail = await this.songDetail(id, context);
+    if (detail?.playableUrl) {
+      return { source: "migu", url: detail.playableUrl };
+    }
+
+    const contentId = miguContentId(detail);
+    if (contentId) {
+      for (const toneFlag of MIGU_TONE_FLAGS) {
+        const url = await miguListenUrl(contentId, toneFlag, context).catch(() => null);
+        if (url) {
+          return {
+            source: "migu",
+            url,
+            quality: toneFlag === "HQ" ? "high" : "standard",
+          };
+        }
+      }
+    }
+
     return {
       source: "migu",
-      url: detail?.playableUrl ?? null,
+      url: null,
     };
   },
 

@@ -108,6 +108,72 @@ describe("music providers", () => {
     });
   });
 
+  it("resolves migu playable url via the listenSong redirect", async () => {
+    const headers = new Headers({ location: "https://freetyst.nf.migu.cn/audio.mp3" });
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse({
+            resource: [{ copyrightId: "m1", songName: "Migu", singer: "S", contentId: "content-1" }],
+          }),
+        )
+        .mockResolvedValueOnce({ ok: false, status: 302, headers } as Response),
+    };
+
+    await expect(miguProvider.playableUrl("m1", context)).resolves.toEqual({
+      source: "migu",
+      url: "https://freetyst.nf.migu.cn/audio.mp3",
+      quality: "standard",
+    });
+  });
+
+  it("returns null migu playable url when the song has no contentId", async () => {
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ resource: [{ copyrightId: "m1", songName: "Migu", singer: "S" }] })),
+    };
+
+    await expect(miguProvider.playableUrl("m1", context)).resolves.toEqual({ source: "migu", url: null });
+  });
+
+  it("returns the migu detail playable url when one is present", async () => {
+    const context: ProviderContext = {
+      fetch: vi.fn().mockResolvedValueOnce(
+        jsonResponse({
+          resource: [
+            {
+              copyrightId: "m1",
+              songName: "Migu",
+              singer: "S",
+              rateFormats: [{ formatType: "PQ", url: "https://migu.example/direct.mp3" }],
+            },
+          ],
+        }),
+      ),
+    };
+
+    await expect(miguProvider.playableUrl("m1", context)).resolves.toEqual({
+      source: "migu",
+      url: "https://migu.example/direct.mp3",
+    });
+  });
+
+  it("returns null migu playable url when every listenSong tone is unavailable", async () => {
+    const noLocation = { ok: false, status: 200, headers: new Headers() } as Response;
+    const context: ProviderContext = {
+      fetch: vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse({ resource: [{ copyrightId: "m1", songName: "Migu", singer: "S", contentId: "content-1" }] }),
+        )
+        .mockResolvedValue(noLocation),
+    };
+
+    await expect(miguProvider.playableUrl("m1", context)).resolves.toEqual({ source: "migu", url: null });
+  });
+
   it("handles empty migu search and lyric responses", async () => {
     const context: ProviderContext = {
       fetch: vi.fn().mockResolvedValueOnce(jsonResponse({})).mockResolvedValueOnce(jsonResponse({})),
