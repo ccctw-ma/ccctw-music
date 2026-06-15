@@ -59,9 +59,14 @@ async function miguListenUrl(contentId: string, toneFlag: string, context: Provi
   return null;
 }
 
+function splitMiguId(id: string): { copyrightId: string; contentId?: string } {
+  const [copyrightId, contentId] = id.split(":");
+  return { copyrightId, contentId: contentId || undefined };
+}
+
 async function miguSongDetail(id: string, context: ProviderContext) {
   const params = toSearchParams({
-    copyrightId: id,
+    copyrightId: splitMiguId(id).copyrightId,
     resourceType: 2,
   });
   const data = await getJson<MiguResourceInfoResponse>(
@@ -113,12 +118,7 @@ export const miguProvider: MusicProvider = {
   },
 
   async playableUrl(id: string, context: ProviderContext): Promise<PlayableUrl> {
-    const detail = await this.songDetail(id, context);
-    if (detail?.playableUrl) {
-      return { source: "migu", url: detail.playableUrl };
-    }
-
-    const contentId = miguContentId(detail);
+    const contentId = splitMiguId(id).contentId ?? miguContentId(await this.songDetail(id, context));
     if (contentId) {
       for (const toneFlag of MIGU_TONE_FLAGS) {
         const url = await miguListenUrl(contentId, toneFlag, context).catch(() => null);
@@ -139,7 +139,7 @@ export const miguProvider: MusicProvider = {
   },
 
   async lyric(id: string, context: ProviderContext): Promise<Lyric> {
-    const params = toSearchParams({ copyrightId: id });
+    const params = toSearchParams({ copyrightId: splitMiguId(id).copyrightId });
     const data = await getJson<{ lyric?: string }>(
       context.fetch,
       `https://music.migu.cn/v3/api/music/audioPlayer/getLyric?${params.toString()}`,

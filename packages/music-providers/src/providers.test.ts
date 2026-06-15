@@ -42,6 +42,7 @@ describe("music providers", () => {
             result: [
               {
                 copyrightId: "c1",
+                contentId: "ct1",
                 name: "Migu",
                 singers: [{ id: "9", name: "Singer" }],
                 albums: [{ id: "5", name: "Album" }],
@@ -59,7 +60,7 @@ describe("music providers", () => {
       total: 1,
       songs: [
         {
-          id: "c1",
+          id: "c1:ct1",
           name: "Migu",
           artists: [{ name: "Singer" }],
           album: { id: "5", name: "Album", coverUrl: "https://d.musicapp.migu.cn/cover.webp" },
@@ -138,26 +139,18 @@ describe("music providers", () => {
     await expect(miguProvider.playableUrl("m1", context)).resolves.toEqual({ source: "migu", url: null });
   });
 
-  it("returns the migu detail playable url when one is present", async () => {
-    const context: ProviderContext = {
-      fetch: vi.fn().mockResolvedValueOnce(
-        jsonResponse({
-          resource: [
-            {
-              copyrightId: "m1",
-              songName: "Migu",
-              singer: "S",
-              rateFormats: [{ formatType: "PQ", url: "https://migu.example/direct.mp3" }],
-            },
-          ],
-        }),
-      ),
-    };
+  it("resolves migu playable url directly from a composite id without a detail lookup", async () => {
+    const headers = new Headers({ location: "https://freetyst.nf.migu.cn/direct.mp3" });
+    const fetcher = vi.fn().mockResolvedValueOnce({ ok: false, status: 302, headers } as Response);
+    const context: ProviderContext = { fetch: fetcher };
 
-    await expect(miguProvider.playableUrl("m1", context)).resolves.toEqual({
+    await expect(miguProvider.playableUrl("copyright-1:content-1", context)).resolves.toEqual({
       source: "migu",
-      url: "https://migu.example/direct.mp3",
+      url: "https://freetyst.nf.migu.cn/direct.mp3",
+      quality: "standard",
     });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledWith(expect.stringContaining("contentId=content-1"), expect.anything());
   });
 
   it("returns null migu playable url when every listenSong tone is unavailable", async () => {

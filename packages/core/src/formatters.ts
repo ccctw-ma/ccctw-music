@@ -173,8 +173,10 @@ export function formatMiguSong(raw: UnknownRecord): Song {
     ) ?? null;
   const formatTypes = formats.map((item) => String(item?.formatType ?? "").toUpperCase());
   const album = miguAlbum(raw);
+  const copyrightId = String(raw.copyrightId ?? raw.id ?? raw.songId ?? "");
+  const contentId = typeof raw.contentId === "string" ? raw.contentId : "";
   return {
-    id: String(raw.copyrightId ?? raw.id ?? raw.songId ?? ""),
+    id: contentId ? `${copyrightId}:${contentId}` : copyrightId,
     source: "migu",
     name: String(raw.songName ?? raw.name ?? ""),
     artists: miguArtists(raw),
