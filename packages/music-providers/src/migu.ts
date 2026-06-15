@@ -6,7 +6,7 @@ import {
   type SearchResult,
   type Song,
 } from "@ccctw-music/core";
-import { getJson, toSearchParams } from "./http";
+import { getJson, toSearchParams, withProxy } from "./http";
 import type { MusicProvider, PlayableUrl, ProviderContext } from "./types";
 
 interface MiguSearchResponse {
@@ -44,17 +44,32 @@ async function miguListenUrl(contentId: string, toneFlag: string, context: Provi
     resourceType: 2,
     copyrightId: 0,
   });
-  const response = await context.fetch(
-    `https://app.pd.nf.migu.cn/MIGUM2.0/v1.0/content/sub/listenSong.do?${params.toString()}`,
-    {
-      redirect: "manual",
+  const target = `https://app.pd.nf.migu.cn/MIGUM2.0/v1.0/content/sub/listenSong.do?${params.toString()}`;
+
+  const readLocation = async (url: string, follow: boolean): Promise<string | null> => {
+    const response = await context.fetch(url, {
+      redirect: follow ? "follow" : "manual",
       headers: MIGU_HEADERS,
       signal: AbortSignal.timeout(8000),
-    },
-  );
-  const location = response.headers?.get("location");
-  if (location && /^https?:\/\//.test(location)) {
-    return location;
+    });
+    const location = response.headers?.get("location");
+    if (location && /^https?:\/\//.test(location)) {
+      return location;
+    }
+    // When following through a proxy, the final resolved URL is the audio file.
+    if (follow && response.ok && /freetyst\.nf\.migu\.cn/.test(response.url ?? "")) {
+      return response.url;
+    }
+    return null;
+  };
+
+  const direct = await readLocation(target, false).catch(() => null);
+  if (direct) {
+    return direct;
+  }
+
+  if (context.proxyUrl) {
+    return readLocation(withProxy(context.proxyUrl, target), true).catch(() => null);
   }
   return null;
 }

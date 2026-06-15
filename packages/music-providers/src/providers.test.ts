@@ -167,6 +167,28 @@ describe("music providers", () => {
     await expect(miguProvider.playableUrl("m1", context)).resolves.toEqual({ source: "migu", url: null });
   });
 
+  it("falls back to the proxy when migu listenSong is blocked directly", async () => {
+    const blocked = { ok: false, status: 200, headers: new Headers(), url: "" } as Response;
+    const resolved = {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      url: "https://freetyst.nf.migu.cn/proxied.mp3",
+    } as Response;
+    const fetcher = vi.fn().mockResolvedValueOnce(blocked).mockResolvedValueOnce(resolved);
+    const context: ProviderContext = { fetch: fetcher, proxyUrl: "https://proxy.example/?url={url}" };
+
+    await expect(miguProvider.playableUrl("copyright-1:content-1", context)).resolves.toEqual({
+      source: "migu",
+      url: "https://freetyst.nf.migu.cn/proxied.mp3",
+      quality: "standard",
+    });
+    expect(fetcher).toHaveBeenLastCalledWith(
+      expect.stringContaining("https://proxy.example/?url="),
+      expect.objectContaining({ redirect: "follow" }),
+    );
+  });
+
   it("handles empty migu search and lyric responses", async () => {
     const context: ProviderContext = {
       fetch: vi.fn().mockResolvedValueOnce(jsonResponse({})).mockResolvedValueOnce(jsonResponse({})),
